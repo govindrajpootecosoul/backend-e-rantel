@@ -1,9 +1,11 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const authRoutes = require('./routes/auth.routes');
 const executiveRoutes = require('./routes/executive.routes');
 const spsRoutes = require('./routes/sps.routes');
 const poTrackerRoutes = require('./routes/po-tracker.routes');
+const notificationsRoutes = require('./routes/notifications.routes');
 
 const app = express();
 
@@ -12,6 +14,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http:/
   .map((o) => o.trim())
   .filter(Boolean);
 
+app.use(compression());
 app.use(
   cors({
     origin(origin, callback) {
@@ -34,6 +37,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/executive', executiveRoutes);
 app.use('/api/v1/sps', spsRoutes);
 app.use('/api/v1/po-tracker', poTrackerRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });

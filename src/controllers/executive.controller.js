@@ -1,4 +1,5 @@
 const PurchaseOrder = require('../models/PurchaseOrder');
+const executiveCache = require('../services/executiveCache');
 const { matchesDateFilter, resolvePoMonthKey } = require('../utils/dateFilters');
 
 const FILTER_FIELDS = [
@@ -16,7 +17,7 @@ const FILTER_FIELDS = [
 ];
 
 const PROJECTION =
-  'storeId poNumber sku poSales poDate totalSales invoiceQty skuQty poAmount invoiceAmount poStatus poDeliveryStatus distributor retailer location updatedAt commonInvoiceDate commonPoDate yearMonthPo';
+  'storeId poNumber sku poSales poDate totalSales invoiceQty skuQty poAmount invoiceAmount poStatus poDeliveryStatus distributor retailer location status warehouse delayDays updatedAt commonInvoiceDate commonPoDate yearMonthPo';
 
 const CHART_PERIODS = ['daily', 'monthly', 'yearly'];
 
@@ -221,16 +222,30 @@ exports.getFilters = async (req, res) => {
 
 exports.getDataset = async (req, res) => {
   try {
+    const forceRefresh = req.query.refresh === '1';
+
+    if (!forceRefresh) {
+      const cached = executiveCache.get();
+      if (cached) {
+        res.set('X-Cache', 'HIT');
+        return res.json(cached);
+      }
+    }
+
     const rows = await PurchaseOrder.find({}).select(PROJECTION).lean();
 
-    return res.json({
+    const responseBody = {
       success: true,
       data: {
         rowCount: rows.length,
         rows,
         lastUpdated: new Date().toISOString(),
       },
-    });
+    };
+
+    executiveCache.set(responseBody);
+    res.set('X-Cache', 'MISS');
+    return res.json(responseBody);
   } catch (err) {
     console.error('getDataset error:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to load executive dataset' });
