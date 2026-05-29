@@ -1,0 +1,2219 @@
+{
+  "info": {
+    "_postman_id": "e-rantel-collection",
+    "name": "E-Rantel API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "poTrackerOrderId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/v1/auth/signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"mobile\": \"\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "signup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/auth/signin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/signin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "signin"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/auth/me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Executive",
+      "item": [
+        {
+          "name": "GET /api/v1/executive/filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/executive/filters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "executive",
+                "filters"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/executive/dataset (refresh optional)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/executive/dataset?refresh=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "executive",
+                "dataset"
+              ],
+              "query": [
+                {
+                  "key": "refresh",
+                  "value": "0",
+                  "description": "Set to 1 to force refresh"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/executive/overview (filters in body, refresh optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/executive/overview?refresh=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "executive",
+                "overview"
+              ],
+              "query": [
+                {
+                  "key": "refresh",
+                  "value": "0",
+                  "description": "Set to 1 to force refresh"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"category\": \"All\",\n    \"retailer\": \"All\",\n    \"location\": \"All\",\n    \"status\": \"All\",\n    \"poStatus\": \"All\",\n    \"warehouse\": \"All\",\n    \"yearMonthPo\": \"All\",\n    \"distributor\": \"All\",\n    \"storeId\": \"All\",\n    \"poDeliveryStatus\": \"All\",\n    \"sku\": \"All\",\n    \"delayDays\": \"All\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/executive/charts/bars (filters in body, refresh optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/executive/charts/bars?refresh=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "executive",
+                "charts",
+                "bars"
+              ],
+              "query": [
+                {
+                  "key": "refresh",
+                  "value": "0",
+                  "description": "Set to 1 to force refresh"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"category\": \"All\",\n    \"retailer\": \"All\",\n    \"location\": \"All\",\n    \"status\": \"All\",\n    \"poStatus\": \"All\",\n    \"warehouse\": \"All\",\n    \"yearMonthPo\": \"All\",\n    \"distributor\": \"All\",\n    \"storeId\": \"All\",\n    \"poDeliveryStatus\": \"All\",\n    \"sku\": \"All\",\n    \"delayDays\": \"All\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/executive/charts/status (filters in body, refresh optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/executive/charts/status?refresh=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "executive",
+                "charts",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "refresh",
+                  "value": "0",
+                  "description": "Set to 1 to force refresh"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"category\": \"All\",\n    \"retailer\": \"All\",\n    \"location\": \"All\",\n    \"status\": \"All\",\n    \"poStatus\": \"All\",\n    \"warehouse\": \"All\",\n    \"yearMonthPo\": \"All\",\n    \"distributor\": \"All\",\n    \"storeId\": \"All\",\n    \"poDeliveryStatus\": \"All\",\n    \"sku\": \"All\",\n    \"delayDays\": \"All\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/executive/dashboard (filters in body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/executive/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "executive",
+                "dashboard"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"category\": \"All\",\n    \"retailer\": \"All\",\n    \"location\": \"All\",\n    \"status\": \"All\",\n    \"poStatus\": \"All\",\n    \"warehouse\": \"All\",\n    \"yearMonthPo\": \"All\",\n    \"distributor\": \"All\",\n    \"storeId\": \"All\",\n    \"poDeliveryStatus\": \"All\",\n    \"sku\": \"All\",\n    \"delayDays\": \"All\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SPS",
+      "item": [
+        {
+          "name": "GET /api/v1/sps/filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sps/filters?store=sps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sps",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "store",
+                  "value": "sps"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/sps/orders (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sps/orders?store=sps&type=po&page=1&limit=25&channel=All&poYearMonth=All&invoiceYearMonth=All&distributor=All&retailer=All&poNumber=All&invoiceNumber=All&sku=All&poStatus=All&status=All&location=All&warehouse=All&poDate=All&invoiceDate=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sps",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "store",
+                  "value": "sps"
+                },
+                {
+                  "key": "type",
+                  "value": "po",
+                  "description": "po | invoice"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "channel",
+                  "value": "All"
+                },
+                {
+                  "key": "poYearMonth",
+                  "value": "All",
+                  "description": "Supports value or range using '..' (ex: 2026-01..2026-03)"
+                },
+                {
+                  "key": "invoiceYearMonth",
+                  "value": "All",
+                  "description": "Supports value or range using '..' (ex: 2026-01..2026-03)"
+                },
+                {
+                  "key": "distributor",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "poNumber",
+                  "value": "All"
+                },
+                {
+                  "key": "invoiceNumber",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "poStatus",
+                  "value": "All"
+                },
+                {
+                  "key": "status",
+                  "value": "All"
+                },
+                {
+                  "key": "location",
+                  "value": "All"
+                },
+                {
+                  "key": "warehouse",
+                  "value": "All"
+                },
+                {
+                  "key": "poDate",
+                  "value": "All",
+                  "description": "Supports YYYY-MM-DD or range using '..' (ex: 2026-01-01..2026-01-31)"
+                },
+                {
+                  "key": "invoiceDate",
+                  "value": "All",
+                  "description": "Supports YYYY-MM-DD or range using '..' (ex: 2026-01-01..2026-01-31)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/sps/summary (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sps/summary?store=sps&channel=All&poYearMonth=All&invoiceYearMonth=All&distributor=All&retailer=All&poNumber=All&invoiceNumber=All&sku=All&poStatus=All&status=All&location=All&warehouse=All&poDate=All&invoiceDate=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sps",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "store",
+                  "value": "sps"
+                },
+                {
+                  "key": "channel",
+                  "value": "All"
+                },
+                {
+                  "key": "poYearMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "invoiceYearMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "distributor",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "poNumber",
+                  "value": "All"
+                },
+                {
+                  "key": "invoiceNumber",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "poStatus",
+                  "value": "All"
+                },
+                {
+                  "key": "status",
+                  "value": "All"
+                },
+                {
+                  "key": "location",
+                  "value": "All"
+                },
+                {
+                  "key": "warehouse",
+                  "value": "All"
+                },
+                {
+                  "key": "poDate",
+                  "value": "All"
+                },
+                {
+                  "key": "invoiceDate",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PO Tracker",
+      "item": [
+        {
+          "name": "GET /api/v1/po-tracker/filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/po-tracker/filters?channelType=retail&category=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "po-tracker",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "channelType",
+                  "value": "retail",
+                  "description": "retail | b2b"
+                },
+                {
+                  "key": "category",
+                  "value": "all",
+                  "description": "all | sps | costco"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/po-tracker/orders (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/po-tracker/orders?channelType=retail&category=all&status=All&search=&page=1&limit=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "po-tracker",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "channelType",
+                  "value": "retail",
+                  "description": "retail | b2b"
+                },
+                {
+                  "key": "category",
+                  "value": "all",
+                  "description": "all | sps | costco"
+                },
+                {
+                  "key": "status",
+                  "value": "All"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/po-tracker/summary (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/po-tracker/summary?channelType=retail&category=all&status=All&search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "po-tracker",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "channelType",
+                  "value": "retail",
+                  "description": "retail | b2b"
+                },
+                {
+                  "key": "category",
+                  "value": "all",
+                  "description": "all | sps | costco"
+                },
+                {
+                  "key": "status",
+                  "value": "All"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/po-tracker/orders/:id (requires poSource)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/po-tracker/orders/{{poTrackerOrderId}}?poSource=sps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "po-tracker",
+                "orders",
+                "{{poTrackerOrderId}}"
+              ],
+              "query": [
+                {
+                  "key": "poSource",
+                  "value": "sps",
+                  "description": "sps | costco"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/v1/po-tracker/orders/:id (requires poSource, channelType optional)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/po-tracker/orders/{{poTrackerOrderId}}?poSource=sps&channelType=retail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "po-tracker",
+                "orders",
+                "{{poTrackerOrderId}}"
+              ],
+              "query": [
+                {
+                  "key": "poSource",
+                  "value": "sps",
+                  "description": "sps | costco"
+                },
+                {
+                  "key": "channelType",
+                  "value": "retail",
+                  "description": "retail | b2b (used for notification grouping)"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Pending\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "GET /api/v1/notifications (limit optional)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications?limit=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30",
+                  "description": "Max 50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/v1/notifications/read-all",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "read-all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/v1/notifications/:id/read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users (Super Admin)",
+      "item": [
+        {
+          "name": "GET /api/v1/users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"new.user@example.com\",\n  \"phone\": \"\",\n  \"password\": \"password123\",\n  \"role\": \"user\",\n  \"status\": \"active\",\n  \"screenAccess\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/v1/users/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"\",\n  \"status\": \"active\",\n  \"role\": \"user\",\n  \"screenAccess\": []\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stores - KeHE",
+      "item": [
+        {
+          "name": "GET /api/v1/stores/kehe/chain-store/filters (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/chain-store/filters?fileMonth=All&retailer=All&retailerArea=All&sku=All&upc=All&material=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "chain-store",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "fileMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "retailerArea",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/chain-store/summary (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/chain-store/summary?fileMonth=All&retailer=All&retailerArea=All&sku=All&upc=All&material=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "chain-store",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "fileMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "retailerArea",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/chain-store/rows (all filters + paging)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/chain-store/rows?page=1&limit=25&fileMonth=All&retailer=All&retailerArea=All&sku=All&upc=All&material=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "chain-store",
+                "rows"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "fileMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "retailerArea",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/stores/kehe/chain-store/upload (multipart, mode optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/chain-store/upload?mode=append",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "chain-store",
+                "upload"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "append",
+                  "description": "append | replace"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/inventory/filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/inventory/filters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "inventory",
+                "filters"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/inventory/dashboard (reportMonth optional)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/inventory/dashboard?reportMonth=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "inventory",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/inventory/summary (reportMonth optional)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/inventory/summary?reportMonth=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "inventory",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/inventory/rows (reportMonth + paging)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/inventory/rows?page=1&limit=25&reportMonth=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "inventory",
+                "rows"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/stores/kehe/inventory/upload (multipart, mode optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/inventory/upload?mode=append",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "inventory",
+                "upload"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "append",
+                  "description": "append | replace"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/risk-inventory/filters (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/risk-inventory/filters?reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "risk-inventory",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/risk-inventory/dashboard (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/risk-inventory/dashboard?reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "risk-inventory",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/risk-inventory/summary (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/risk-inventory/summary?reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "risk-inventory",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/kehe/risk-inventory/rows (all filters + paging)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/risk-inventory/rows?page=1&limit=25&reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "risk-inventory",
+                "rows"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/stores/kehe/risk-inventory/upload (multipart, mode optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/kehe/risk-inventory/upload?mode=append",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "kehe",
+                "risk-inventory",
+                "upload"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "append",
+                  "description": "append | replace"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stores - Sprouts",
+      "item": [
+        {
+          "name": "GET /api/v1/stores/sprouts/chain-store/filters (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/chain-store/filters?fileMonth=All&retailer=All&retailerArea=All&sku=All&upc=All&material=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "chain-store",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "fileMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "retailerArea",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/chain-store/summary (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/chain-store/summary?fileMonth=All&retailer=All&retailerArea=All&sku=All&upc=All&material=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "chain-store",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "fileMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "retailerArea",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/chain-store/rows (all filters + paging)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/chain-store/rows?page=1&limit=25&fileMonth=All&retailer=All&retailerArea=All&sku=All&upc=All&material=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "chain-store",
+                "rows"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "fileMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "retailer",
+                  "value": "All"
+                },
+                {
+                  "key": "retailerArea",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/stores/sprouts/chain-store/upload (multipart, mode optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/chain-store/upload?mode=append",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "chain-store",
+                "upload"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "append",
+                  "description": "append | replace"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/inventory/filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/inventory/filters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "inventory",
+                "filters"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/inventory/dashboard (reportMonth optional)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/inventory/dashboard?reportMonth=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "inventory",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/inventory/summary (reportMonth optional)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/inventory/summary?reportMonth=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "inventory",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/inventory/rows (reportMonth + paging)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/inventory/rows?page=1&limit=25&reportMonth=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "inventory",
+                "rows"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/stores/sprouts/inventory/upload (multipart, mode optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/inventory/upload?mode=append",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "inventory",
+                "upload"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "append",
+                  "description": "append | replace"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/risk-inventory/filters (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/risk-inventory/filters?reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "risk-inventory",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/risk-inventory/dashboard (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/risk-inventory/dashboard?reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "risk-inventory",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/risk-inventory/summary (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/risk-inventory/summary?reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "risk-inventory",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/stores/sprouts/risk-inventory/rows (all filters + paging)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/risk-inventory/rows?page=1&limit=25&reportMonth=All&sku=All&dc=All&material=All&upc=All",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "risk-inventory",
+                "rows"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "reportMonth",
+                  "value": "All"
+                },
+                {
+                  "key": "sku",
+                  "value": "All"
+                },
+                {
+                  "key": "dc",
+                  "value": "All"
+                },
+                {
+                  "key": "material",
+                  "value": "All"
+                },
+                {
+                  "key": "upc",
+                  "value": "All"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/stores/sprouts/risk-inventory/upload (multipart, mode optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/sprouts/risk-inventory/upload?mode=append",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "sprouts",
+                "risk-inventory",
+                "upload"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "append",
+                  "description": "append | replace"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

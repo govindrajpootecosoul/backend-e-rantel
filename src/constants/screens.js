@@ -41,7 +41,7 @@ const SCREEN_GROUPS = [
     comingSoon: false,
     screens: [
       { id: 'stores_kehe', label: 'KeHe' },
-      { id: 'stores_sprouts', label: 'Sprouts', comingSoon: true },
+      { id: 'stores_sprouts', label: 'Sprouts' },
     ],
   },
   {

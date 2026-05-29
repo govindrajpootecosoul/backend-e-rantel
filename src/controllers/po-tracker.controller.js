@@ -23,6 +23,8 @@ const { notifyPoTrackerUpdate } = require('../services/notification.service');
 const emptySummary = () => ({
   totalPos: 0,
   pending: 0,
+  cancelled: 0,
+  shortShipped: 0,
   statusIssues: 0,
   withInvoice: 0,
   fulfilled: 0,

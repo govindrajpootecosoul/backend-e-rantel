@@ -108,6 +108,30 @@ const summaryGroupStages = [
           0,
         ],
       },
+      _isCancelled: {
+        $cond: [
+          {
+            $regexMatch: {
+              input: { $ifNull: ['$_resolvedStatus', ''] },
+              regex: /cancel/i,
+            },
+          },
+          1,
+          0,
+        ],
+      },
+      _isShortShipped: {
+        $cond: [
+          {
+            $regexMatch: {
+              input: { $ifNull: ['$_resolvedStatus', ''] },
+              regex: /short\s*shipped/i,
+            },
+          },
+          1,
+          0,
+        ],
+      },
       _isIssue: {
         $cond: [
           {
@@ -149,6 +173,8 @@ const summaryGroupStages = [
       _id: { poSource: '$_poSource', poNumber: '$poNumber', sku: '$sku' },
       hasInvoice: { $max: '$_hasInvoice' },
       isPending: { $max: '$_isPending' },
+      isCancelled: { $max: '$_isCancelled' },
+      isShortShipped: { $max: '$_isShortShipped' },
       isIssue: { $max: '$_isIssue' },
       isFulfilled: { $max: '$_isFulfilled' },
     },
@@ -158,6 +184,8 @@ const summaryGroupStages = [
       _id: null,
       totalPos: { $sum: 1 },
       pending: { $sum: '$isPending' },
+      cancelled: { $sum: '$isCancelled' },
+      shortShipped: { $sum: '$isShortShipped' },
       statusIssues: { $sum: '$isIssue' },
       withInvoice: { $sum: '$hasInvoice' },
       fulfilled: { $sum: '$isFulfilled' },
@@ -168,6 +196,8 @@ const summaryGroupStages = [
 const emptySummaryMetrics = () => ({
   totalPos: 0,
   pending: 0,
+  cancelled: 0,
+  shortShipped: 0,
   statusIssues: 0,
   withInvoice: 0,
   fulfilled: 0,
@@ -176,6 +206,8 @@ const emptySummaryMetrics = () => ({
 const mergeSummaryMetrics = (a, b) => ({
   totalPos: (a.totalPos || 0) + (b.totalPos || 0),
   pending: (a.pending || 0) + (b.pending || 0),
+  cancelled: (a.cancelled || 0) + (b.cancelled || 0),
+  shortShipped: (a.shortShipped || 0) + (b.shortShipped || 0),
   statusIssues: (a.statusIssues || 0) + (b.statusIssues || 0),
   withInvoice: (a.withInvoice || 0) + (b.withInvoice || 0),
   fulfilled: (a.fulfilled || 0) + (b.fulfilled || 0),

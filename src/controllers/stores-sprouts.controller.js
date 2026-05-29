@@ -1,13 +1,13 @@
 const crypto = require('crypto');
-const KeheChainStore = require('../models/KeheChainStore');
-const KeheInventory = require('../models/KeheInventory');
-const KeheRiskInventory = require('../models/KeheRiskInventory');
-const chainStoreService = require('../services/kehe-chain-store.service');
+const SproutsChainStore = require('../models/SproutsChainStore');
+const SproutsInventory = require('../models/SproutsInventory');
+const SproutsRiskInventory = require('../models/SproutsRiskInventory');
+const chainStoreService = require('../services/sprouts-chain-store.service');
 const { parseUploadBuffer, parseGenericUploadBuffer } = require('../utils/kehe-import.utils');
 const { parseInventoryUploadBuffer } = require('../utils/kehe-inventory-import.utils');
 const { parseRiskInventoryUploadBuffer } = require('../utils/kehe-risk-inventory-import.utils');
-const inventoryService = require('../services/kehe-inventory.service');
-const riskInventoryService = require('../services/kehe-risk-inventory.service');
+const inventoryService = require('../services/sprouts-inventory.service');
+const riskInventoryService = require('../services/sprouts-risk-inventory.service');
 const { parseFiltersFromQuery, parsePage, parseLimit } = require('../utils/kehe-filters.utils');
 const { parseRiskFiltersFromQuery } = require('../utils/kehe-risk-filters.utils');
 
@@ -32,7 +32,7 @@ exports.getChainStoreFilters = async (req, res) => {
     });
   } catch (err) {
     console.error('getChainStoreFilters error:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to load KeHE filters' });
+    return res.status(500).json({ success: false, message: 'Failed to load Sprouts filters' });
   }
 };
 
@@ -56,7 +56,7 @@ exports.getChainStoreSummary = async (req, res) => {
     });
   } catch (err) {
     console.error('getChainStoreSummary error:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to load KeHE summary' });
+    return res.status(500).json({ success: false, message: 'Failed to load Sprouts summary' });
   }
 };
 
@@ -76,7 +76,7 @@ exports.getChainStoreRows = async (req, res) => {
     });
   } catch (err) {
     console.error('getChainStoreRows error:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to load KeHE rows' });
+    return res.status(500).json({ success: false, message: 'Failed to load Sprouts rows' });
   }
 };
 
@@ -95,7 +95,7 @@ exports.uploadChainStore = async (req, res) => {
     if (!docs.length) {
       return res.status(400).json({
         success: false,
-        message: 'No valid rows found. Check column headers match the KeHE chain store template.',
+        message: 'No valid rows found. Check column headers match the Sprouts chain store template.',
       });
     }
 
@@ -107,10 +107,10 @@ exports.uploadChainStore = async (req, res) => {
     }));
 
     if (mode === 'replace') {
-      await KeheChainStore.deleteMany({});
+      await SproutsChainStore.deleteMany({});
     }
 
-    const inserted = await KeheChainStore.insertMany(payload, { ordered: false });
+    const inserted = await SproutsChainStore.insertMany(payload, { ordered: false });
 
     return res.json({
       success: true,
@@ -203,7 +203,7 @@ exports.uploadRiskInventory = async (req, res) => {
     if (!docs.length) {
       return res.status(400).json({
         success: false,
-        message: 'No valid rows found. Check column headers match the KeHE risk inventory export.',
+        message: 'No valid rows found. Check column headers match the Sprouts risk inventory export.',
       });
     }
 
@@ -215,10 +215,10 @@ exports.uploadRiskInventory = async (req, res) => {
     }));
 
     if (mode === 'replace') {
-      await KeheRiskInventory.deleteMany({});
+      await SproutsRiskInventory.deleteMany({});
     }
 
-    const inserted = await KeheRiskInventory.insertMany(payload, { ordered: false });
+    const inserted = await SproutsRiskInventory.insertMany(payload, { ordered: false });
 
     return res.json({
       success: true,
@@ -241,7 +241,7 @@ exports.getRiskInventoryFilters = async (req, res) => {
   try {
     const filters = parseRiskFiltersFromQuery(req.query);
     const options = await riskInventoryService.getFilterOptions(filters);
-    const rowCount = await KeheRiskInventory.estimatedDocumentCount();
+    const rowCount = await SproutsRiskInventory.estimatedDocumentCount();
     const wrapped = {};
     for (const [key, values] of Object.entries(options)) {
       wrapped[key] = ['All', ...values];
@@ -285,7 +285,7 @@ exports.uploadInventory = async (req, res) => {
     if (!docs.length) {
       return res.status(400).json({
         success: false,
-        message: 'No valid rows found. Check column headers match the KeHE inventory export.',
+        message: 'No valid rows found. Check column headers match the Sprouts inventory export.',
       });
     }
 
@@ -301,10 +301,10 @@ exports.uploadInventory = async (req, res) => {
     );
 
     if (mode === 'replace') {
-      await KeheInventory.deleteMany({});
+      await SproutsInventory.deleteMany({});
     }
 
-    const inserted = await KeheInventory.insertMany(payload, { ordered: false });
+    const inserted = await SproutsInventory.insertMany(payload, { ordered: false });
 
     return res.json({
       success: true,
@@ -326,7 +326,7 @@ exports.uploadInventory = async (req, res) => {
 exports.getInventoryFilters = async (req, res) => {
   try {
     const months = await inventoryService.getFilterOptions();
-    const rowCount = await KeheInventory.estimatedDocumentCount();
+    const rowCount = await SproutsInventory.estimatedDocumentCount();
     return res.json({
       success: true,
       data: { months, rowCount, lastUpdated: new Date().toISOString() },
@@ -390,8 +390,8 @@ exports.getInventoryRows = async (req, res) => {
     const reportMonth = req.query.reportMonth;
     const query =
       reportMonth && reportMonth !== 'All' ? { reportMonth } : {};
-    const total = await KeheInventory.countDocuments(query);
-    const rows = await KeheInventory.find(query)
+    const total = await SproutsInventory.countDocuments(query);
+    const rows = await SproutsInventory.find(query)
       .select('-__v')
       .sort({ updatedAt: -1 })
       .skip(skip)
@@ -416,8 +416,8 @@ exports.getRiskInventoryRows = async (req, res) => {
     const filters = parseRiskFiltersFromQuery(req.query);
     const { buildRiskMatch } = require('../utils/kehe-risk-filters.utils');
     const query = buildRiskMatch(filters);
-    const total = await KeheRiskInventory.countDocuments(query);
-    const rows = await KeheRiskInventory.find(query)
+    const total = await SproutsRiskInventory.countDocuments(query);
+    const rows = await SproutsRiskInventory.find(query)
       .select('-__v')
       .sort({ updatedAt: -1 })
       .skip(skip)

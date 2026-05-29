@@ -58,11 +58,11 @@ const inventorySchema = new mongoose.Schema(
     sourceFileName: { type: String, default: '' },
   },
   {
-    collection: 'kehe_inventory',
+    collection: 'sprouts_inventory',
     timestamps: true,
     autoIndex: false,
   }
 );
 
 module.exports =
-  mongoose.models.KeheInventory || mongoose.model('KeheInventory', inventorySchema);
+  mongoose.models.SproutsInventory || mongoose.model('SproutsInventory', inventorySchema);

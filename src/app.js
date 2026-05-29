@@ -8,6 +8,7 @@ const poTrackerRoutes = require('./routes/po-tracker.routes');
 const notificationsRoutes = require('./routes/notifications.routes');
 const usersRoutes = require('./routes/users.routes');
 const storesKeheRoutes = require('./routes/stores-kehe.routes');
+const storesSproutsRoutes = require('./routes/stores-sprouts.routes');
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/v1/po-tracker', poTrackerRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/stores/kehe', storesKeheRoutes);
+app.use('/api/v1/stores/sprouts', storesSproutsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });

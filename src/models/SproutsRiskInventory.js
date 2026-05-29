@@ -31,11 +31,11 @@ const riskSchema = new mongoose.Schema(
     sourceFileName: { type: String, default: '' },
   },
   {
-    collection: 'kehe_risk_inventory',
+    collection: 'sprouts_risk_inventory',
     timestamps: true,
     autoIndex: false,
   }
 );
 
 module.exports =
-  mongoose.models.KeheRiskInventory || mongoose.model('KeheRiskInventory', riskSchema);
+  mongoose.models.SproutsRiskInventory || mongoose.model('SproutsRiskInventory', riskSchema);

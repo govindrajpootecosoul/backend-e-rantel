@@ -50,6 +50,18 @@ const getPurchaseOrderModel = (storeId = 'sps') => {
   return mongoose.model(modelName, purchaseOrderSchema, collection);
 };
 
+const getPurchaseOrderModelByCollection = (collectionName) => {
+  const collection = String(collectionName || '').trim();
+  if (!collection) return getPurchaseOrderModel('sps');
+
+  const modelName = `PurchaseOrder_${collection}`;
+  if (mongoose.models[modelName]) {
+    return mongoose.models[modelName];
+  }
+  return mongoose.model(modelName, purchaseOrderSchema, collection);
+};
+
 module.exports = getPurchaseOrderModel('sps');
 module.exports.getPurchaseOrderModel = getPurchaseOrderModel;
+module.exports.getPurchaseOrderModelByCollection = getPurchaseOrderModelByCollection;
 module.exports.COLLECTION_BY_STORE = COLLECTION_BY_STORE;

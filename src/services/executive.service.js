@@ -1,8 +1,16 @@
-const PurchaseOrder = require('../models/PurchaseOrder');
+const { getPurchaseOrderModelByCollection } = require('../models/PurchaseOrder');
 const executiveCache = require('./executiveCache');
 const { matchesDateFilter, resolvePoMonthKey } = require('../utils/dateFilters');
 
+const EXECUTIVE_COLLECTIONS = ['purchase_orders_sps', 'purchase_orders_costco'];
+
+const CATEGORY_LABEL_BY_COLLECTION = {
+  purchase_orders_sps: 'SPS',
+  purchase_orders_costco: 'Costco',
+};
+
 const FILTER_FIELDS = [
+  'category',
   'retailer',
   'location',
   'status',
@@ -25,10 +33,16 @@ const FILTERED_ROWS_TTL_MS = 60 * 1000;
 const filteredRowsCache = new Map();
 const pendingRowLoads = new Map();
 
+const tagRowsWithCategory = (rows, collection) =>
+  rows.map((row) => ({
+    ...row,
+    category: CATEGORY_LABEL_BY_COLLECTION[collection] || collection,
+  }));
+
 const buildMatch = (filters = {}) => {
   const match = {};
   for (const field of FILTER_FIELDS) {
-    if (field === 'yearMonthPo') continue;
+    if (field === 'yearMonthPo' || field === 'category') continue;
     const value = filters[field];
     if (value === undefined || value === null || value === '' || value === 'All') {
       continue;
@@ -45,10 +59,24 @@ const buildMatch = (filters = {}) => {
 
 const filterCacheKey = (filters = {}) => JSON.stringify(filters);
 
+const normalizeCategoryFilter = (value) => {
+  if (!value || value === 'All') return null;
+  const key = String(value).toLowerCase();
+  if (key === 'sps') return 'SPS';
+  if (key === 'costco') return 'Costco';
+  return String(value);
+};
+
+const applyCategoryFilter = (rows, filters = {}) => {
+  const want = normalizeCategoryFilter(filters.category);
+  if (!want) return rows;
+  return rows.filter((row) => String(row.category || '') === want);
+};
+
 const dedupeRows = (rows) => {
   const map = new Map();
   for (const row of rows) {
-    const key = `${row.storeId || ''}|${row.poNumber || ''}|${row.sku || ''}`;
+    const key = `${row.category || ''}|${row.storeId || ''}|${row.poNumber || ''}|${row.sku || ''}`;
     const existing = map.get(key);
     if (!existing) {
       map.set(key, row);
@@ -75,7 +103,8 @@ const uniqueCount = (rows, field) => {
 const uniquePoCount = (rows) => {
   const set = new Set();
   for (const row of rows) {
-    set.add(`${row.storeId || ''}|${row.poNumber || ''}`);
+    // Option B behavior: treat same PO in different categories as distinct.
+    set.add(`${row.category || ''}|${row.storeId || ''}|${row.poNumber || ''}`);
   }
   return set.size;
 };
@@ -166,8 +195,10 @@ const groupByDeliveryStatus = (rows, statusField = 'poDeliveryStatus') => {
   return Array.from(map.entries()).map(([status, count]) => ({ status, count }));
 };
 
-const hasActiveFilters = (filters = {}) => {
+/** True when any filter other than category is set. */
+const hasNonCategoryFilters = (filters = {}) => {
   for (const field of FILTER_FIELDS) {
+    if (field === 'category') continue;
     const value = filters[field];
     if (value !== undefined && value !== null && value !== '' && value !== 'All') {
       return true;
@@ -176,8 +207,51 @@ const hasActiveFilters = (filters = {}) => {
   return false;
 };
 
+const normalizeExecutiveFilters = (filters = {}) => {
+  const normalized = {};
+  for (const field of FILTER_FIELDS) {
+    const value = filters[field];
+    normalized[field] =
+      value === undefined || value === null || value === '' ? 'All' : String(value);
+  }
+  return normalized;
+};
+
+const fetchRowsFromSource = async (collection, filters = {}) => {
+  const Model = getPurchaseOrderModelByCollection(collection);
+  const yearMonthFilter = filters.yearMonthPo;
+  const match = buildMatch(filters);
+
+  let rows = await Model.find(match).select(PROJECTION).lean();
+
+  if (yearMonthFilter && yearMonthFilter !== 'All') {
+    rows = rows.filter((row) =>
+      matchesDateFilter(resolvePoMonthKey(row), yearMonthFilter)
+    );
+  }
+
+  return tagRowsWithCategory(rows, collection);
+};
+
+const fetchRowsFromDb = async (filters = {}) => {
+  // Always load from both collections; apply category filter in-memory.
+  // This guarantees "All" = SPS + Costco, and category selection works reliably.
+  const sources = EXECUTIVE_COLLECTIONS;
+  const chunks = await Promise.all(
+    sources.map((source) => fetchRowsFromSource(source, filters))
+  );
+  const merged = chunks.flat();
+
+  if (process.env.DEBUG_EXECUTIVE === '1') {
+    const counts = sources.map((s, i) => `${s}:${chunks[i]?.length ?? 0}`).join(', ');
+    console.log('[executive] sources=', counts, 'total=', merged.length);
+  }
+
+  return applyCategoryFilter(merged, filters);
+};
+
 const fetchAllRowsFromDb = async () => {
-  const rows = await PurchaseOrder.find({}).select(PROJECTION).lean();
+  const rows = await fetchRowsFromDb({});
   const responseBody = {
     success: true,
     data: {
@@ -190,22 +264,8 @@ const fetchAllRowsFromDb = async () => {
   return rows;
 };
 
-const fetchRowsFromDb = async (filters = {}) => {
-  const yearMonthFilter = filters.yearMonthPo;
-  const match = buildMatch(filters);
-
-  let rows = await PurchaseOrder.find(match).select(PROJECTION).lean();
-
-  if (yearMonthFilter && yearMonthFilter !== 'All') {
-    rows = rows.filter((row) =>
-      matchesDateFilter(resolvePoMonthKey(row), yearMonthFilter)
-    );
-  }
-
-  return rows;
-};
-
-const loadFilteredRows = async (filters = {}, { forceRefresh = false } = {}) => {
+const loadFilteredRows = async (rawFilters = {}, { forceRefresh = false } = {}) => {
+  const filters = normalizeExecutiveFilters(rawFilters);
   const key = filterCacheKey(filters);
 
   if (!forceRefresh) {
@@ -220,7 +280,15 @@ const loadFilteredRows = async (filters = {}, { forceRefresh = false } = {}) => 
 
   const loadPromise = (async () => {
     let rows;
-    if (!hasActiveFilters(filters)) {
+
+    if (!hasNonCategoryFilters(filters)) {
+      // For Option B (All = SPS + Costco sum), always rebuild the "All" dataset
+      // from both collections to avoid any stale single-source cache.
+      if (filters.category === 'All') {
+        rows = await fetchAllRowsFromDb();
+        return rows;
+      }
+
       if (!forceRefresh) {
         const datasetCache = executiveCache.get();
         if (datasetCache?.data?.rows) {
@@ -229,7 +297,11 @@ const loadFilteredRows = async (filters = {}, { forceRefresh = false } = {}) => 
       }
       if (!rows) {
         rows = await fetchAllRowsFromDb();
+      } else if (rows.length > 0 && !rows[0].category) {
+        executiveCache.invalidate();
+        rows = await fetchAllRowsFromDb();
       }
+      rows = applyCategoryFilter(rows, filters);
     } else {
       rows = await fetchRowsFromDb(filters);
     }
@@ -259,7 +331,6 @@ const buildOverview = (rows) => {
     rowCount: rows.length,
     dedupedCount: deduped.length,
     summary: {
-      channelSelect: uniqueCount(deduped, 'storeId'),
       uniqueDistributors: uniqueCount(deduped, 'distributor'),
       uniqueRetailers: uniqueCount(deduped, 'retailer'),
       uniqueLocations: uniqueCount(deduped, 'location'),
@@ -295,6 +366,8 @@ const invalidateCaches = () => {
 module.exports = {
   FILTER_FIELDS,
   buildMatch,
+  normalizeExecutiveFilters,
+  applyCategoryFilter,
   loadFilteredRows,
   buildOverview,
   buildBarCharts,

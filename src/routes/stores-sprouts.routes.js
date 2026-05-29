@@ -17,7 +17,7 @@ const {
   getRiskInventorySummary,
   getInventoryRows,
   getRiskInventoryRows,
-} = require('../controllers/stores-kehe.controller');
+} = require('../controllers/stores-sprouts.controller');
 
 const router = express.Router();
 const upload = multer({
@@ -40,7 +40,7 @@ const upload = multer({
 });
 
 router.use(authMiddleware);
-router.use(requireScreen('stores_kehe'));
+router.use(requireScreen('stores_sprouts'));
 
 router.get('/chain-store/filters', getChainStoreFilters);
 router.get('/chain-store/summary', getChainStoreSummary);

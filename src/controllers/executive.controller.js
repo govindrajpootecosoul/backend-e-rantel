@@ -1,37 +1,46 @@
-const PurchaseOrder = require('../models/PurchaseOrder');
+const { getPurchaseOrderModelByCollection } = require('../models/PurchaseOrder');
 const executiveCache = require('../services/executiveCache');
 const executiveService = require('../services/executive.service');
 
 const FILTER_FIELDS = executiveService.FILTER_FIELDS;
+const EXECUTIVE_MODELS = [
+  getPurchaseOrderModelByCollection('purchase_orders_sps'),
+  getPurchaseOrderModelByCollection('purchase_orders_costco'),
+];
 const prependAll = (arr) => ['All', ...arr.filter(Boolean).sort()];
 
 const lastUpdated = () => new Date().toISOString();
 
+const mergeDistinct = async (field) => {
+  const lists = await Promise.all(
+    EXECUTIVE_MODELS.map((Model) => Model.distinct(field).lean())
+  );
+  return [...new Set(lists.flat())];
+};
+
 exports.getFilters = async (req, res) => {
   try {
-    const distinctPromises = FILTER_FIELDS.map((field) => {
-      if (field === 'delayDays') {
-        return PurchaseOrder.distinct('delayDays').lean();
-      }
-      return PurchaseOrder.distinct(field).lean();
-    });
+    const filters = { category: ['All', 'SPS', 'Costco'] };
 
-    const results = await Promise.all(distinctPromises);
-
-    const filters = {};
-    FILTER_FIELDS.forEach((field, index) => {
+    for (const field of FILTER_FIELDS) {
+      if (field === 'category') continue;
       if (field === 'yearMonthPo') {
         filters[field] = ['All'];
-        return;
+        continue;
       }
-      let values = results[index] || [];
+
+      let values =
+        field === 'delayDays'
+          ? await mergeDistinct('delayDays')
+          : await mergeDistinct(field);
+
       if (field === 'delayDays') {
         values = values.map((v) => String(v));
       } else {
         values = values.map((v) => String(v));
       }
       filters[field] = prependAll(values);
-    });
+    }
 
     return res.json({ success: true, data: filters });
   } catch (err) {
@@ -52,6 +61,7 @@ exports.getDataset = async (req, res) => {
       }
     }
 
+    executiveService.invalidateCaches();
     const rows = await executiveService.loadFilteredRows({}, { forceRefresh: true });
 
     const responseBody = {
