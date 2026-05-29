@@ -6,6 +6,8 @@ const executiveRoutes = require('./routes/executive.routes');
 const spsRoutes = require('./routes/sps.routes');
 const poTrackerRoutes = require('./routes/po-tracker.routes');
 const notificationsRoutes = require('./routes/notifications.routes');
+const usersRoutes = require('./routes/users.routes');
+const storesKeheRoutes = require('./routes/stores-kehe.routes');
 
 const app = express();
 
@@ -38,12 +40,17 @@ app.use('/api/v1/executive', executiveRoutes);
 app.use('/api/v1/sps', spsRoutes);
 app.use('/api/v1/po-tracker', poTrackerRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/stores/kehe', storesKeheRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
 app.use((err, req, res, next) => {
+  if (err?.message?.includes('files are allowed')) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
   console.error('Unhandled error:', err.message);
   res.status(500).json({ success: false, message: 'Internal server error' });
 });

@@ -1,12 +1,22 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { SCREEN_GROUPS } = require('../constants/screens');
+const serializeUser = require('../utils/serializeUser');
 
-const signToken = (user) =>
-  jwt.sign(
-    { id: user._id, email: user.email, role: user.role, name: user.name },
+const signToken = (user) => {
+  const serialized = serializeUser(user);
+  return jwt.sign(
+    {
+      id: serialized.id,
+      email: serialized.email,
+      role: serialized.role,
+      name: serialized.name,
+      screenAccess: serialized.screenAccess,
+    },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
+};
 
 exports.signup = async (req, res) => {
   try {
@@ -29,6 +39,8 @@ exports.signup = async (req, res) => {
       email: email.toLowerCase(),
       phone: mobile || '',
       password,
+      role: 'user',
+      screenAccess: [],
     });
 
     const token = signToken(user);
@@ -38,14 +50,7 @@ exports.signup = async (req, res) => {
       message: 'Account created',
       data: {
         token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          status: user.status,
-        },
+        user: serializeUser(user),
       },
     });
   } catch (err) {
@@ -66,7 +71,7 @@ exports.signin = async (req, res) => {
     }
 
     const user = await User.findOne({ email: email.toLowerCase() }).select(
-      '+password name email phone role status'
+      '+password name email phone role status screenAccess'
     );
 
     if (!user) {
@@ -89,18 +94,51 @@ exports.signin = async (req, res) => {
       message: 'Signed in',
       data: {
         token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          status: user.status,
-        },
+        user: serializeUser(user),
       },
     });
   } catch (err) {
     console.error('signin error:', err.message);
     return res.status(500).json({ success: false, message: 'Sign in failed' });
+  }
+};
+
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select('name email phone role status screenAccess createdAt updatedAt')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.status && user.status !== 'active') {
+      return res.status(403).json({ success: false, message: 'Account is not active' });
+    }
+
+    const serialized = serializeUser(user);
+    const jwtRole = req.user.role;
+    const jwtAccess = JSON.stringify(req.user.screenAccess || []);
+    const dbAccess = JSON.stringify(serialized.screenAccess || []);
+    const tokenOutdated = jwtRole !== serialized.role || jwtAccess !== dbAccess;
+
+    const data = {
+      user: serialized,
+      screenGroups: SCREEN_GROUPS,
+    };
+
+    if (tokenOutdated) {
+      const freshUser = await User.findById(req.user.id);
+      data.token = signToken(freshUser);
+    }
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    console.error('getMe error:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to load profile' });
   }
 };
