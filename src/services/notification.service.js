@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 
-const channelLabel = (channelType) => (channelType === 'b2b' ? 'B2B' : 'Retails');
+const channelLabel = (channelType) => (channelType === 'b2b' ? 'B2B' : 'B2C');
 
 const formatChangeSummary = (changes = []) => {
   if (changes.length === 0) return 'Fields were updated.';

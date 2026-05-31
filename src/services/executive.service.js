@@ -1,6 +1,7 @@
 const { getPurchaseOrderModelByCollection } = require('../models/PurchaseOrder');
 const executiveCache = require('./executiveCache');
 const { matchesDateFilter, resolvePoMonthKey } = require('../utils/dateFilters');
+const { buildDetailLists } = require('../utils/kpi-detail-lists');
 
 const EXECUTIVE_COLLECTIONS = ['purchase_orders_sps', 'purchase_orders_costco'];
 
@@ -344,6 +345,7 @@ const buildOverview = (rows) => {
       invoiceAmount,
       diffAmount: poAmount - invoiceAmount,
     },
+    lists: buildDetailLists(deduped),
   };
 };
 

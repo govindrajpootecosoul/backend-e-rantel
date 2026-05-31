@@ -6,6 +6,7 @@ const {
   buildBasePipeline,
   buildFilterOptionsFromGroup,
 } = require('../utils/sps.utils');
+const { buildDetailLists } = require('../utils/kpi-detail-lists');
 
 const SPS_PROJECTION =
   'storeId distributor retailer channel poNumber poDate poRequestedDeliveryDate poAmount poStatus invoiceNumber invoiceDate invoiceAmount shippingCity yearMonthPo delayDays poDeliveryStatus upcGtin sku skuQty poSales invoiceQty status totalSales location warehouse qtyDiff amtDiff unitListCost commonPoDate commonInvoiceDate newPoDeliveryStatus newStatus srp updatedAt createdAt';
@@ -75,7 +76,7 @@ exports.getSummary = async (req, res) => {
 
     const filteredPipeline = buildBasePipeline(storeId, filters, 'po');
 
-    const [poCountResult, dedupedMetrics] = await Promise.all([
+    const [poCountResult, dedupedMetrics, dedupedRows] = await Promise.all([
       PurchaseOrder.aggregate([
         ...filteredPipeline,
         {
@@ -111,7 +112,43 @@ exports.getSummary = async (req, res) => {
           },
         },
       ]),
+      PurchaseOrder.aggregate([
+        ...filteredPipeline,
+        { $sort: { updatedAt: -1, _id: -1 } },
+        {
+          $group: {
+            _id: { storeId: '$storeId', poNumber: '$poNumber', sku: '$sku' },
+            storeId: { $first: '$storeId' },
+            poNumber: { $first: '$poNumber' },
+            sku: { $first: '$sku' },
+            retailer: { $first: '$retailer' },
+            distributor: { $first: '$distributor' },
+            location: { $first: '$location' },
+            skuQty: { $first: '$skuQty' },
+            invoiceQty: { $first: '$invoiceQty' },
+            poSales: { $first: '$poSales' },
+            totalSales: { $first: '$totalSales' },
+            invoiceAmount: { $first: '$invoiceAmount' },
+          },
+        },
+      ]),
     ]);
+
+    const categoryLabel = storeId.toUpperCase();
+    const listRows = dedupedRows.map((row) => ({
+      category: categoryLabel,
+      storeId: row.storeId,
+      poNumber: row.poNumber,
+      sku: row.sku,
+      retailer: row.retailer,
+      distributor: row.distributor,
+      location: row.location,
+      skuQty: row.skuQty,
+      invoiceQty: row.invoiceQty,
+      poSales: row.poSales,
+      totalSales: row.totalSales,
+      invoiceAmount: row.invoiceAmount,
+    }));
 
     const summary = {
       ...emptySummary(),
@@ -124,6 +161,7 @@ exports.getSummary = async (req, res) => {
       data: {
         storeId,
         summary,
+        lists: buildDetailLists(listRows),
         lastUpdated: new Date().toISOString(),
       },
     });
