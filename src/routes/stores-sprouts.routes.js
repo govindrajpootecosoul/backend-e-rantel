@@ -1,6 +1,7 @@
 const express = require('express');
-const multer = require('multer');
 const authMiddleware = require('../middleware/auth.middleware');
+const { upload } = require('../config/upload');
+const { uploadLimiter } = require('../middleware/security.middleware');
 const requireScreen = require('../middleware/screenAccess.middleware');
 const {
   getChainStoreFilters,
@@ -20,24 +21,6 @@ const {
 } = require('../controllers/stores-sprouts.controller');
 
 const router = express.Router();
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 },
-  fileFilter(req, file, cb) {
-    const name = (file.originalname || '').toLowerCase();
-    const ok =
-      name.endsWith('.csv') ||
-      name.endsWith('.tsv') ||
-      name.endsWith('.txt') ||
-      name.endsWith('.xlsx') ||
-      name.endsWith('.xls');
-    if (!ok) {
-      cb(new Error('Only .csv, .tsv, .txt, .xlsx, or .xls files are allowed'));
-      return;
-    }
-    cb(null, true);
-  },
-});
 
 router.use(authMiddleware);
 router.use(requireScreen('stores_sprouts'));
@@ -45,18 +28,18 @@ router.use(requireScreen('stores_sprouts'));
 router.get('/chain-store/filters', getChainStoreFilters);
 router.get('/chain-store/summary', getChainStoreSummary);
 router.get('/chain-store/rows', getChainStoreRows);
-router.post('/chain-store/upload', upload.single('file'), uploadChainStore);
+router.post('/chain-store/upload', uploadLimiter, upload.single('file'), uploadChainStore);
 
 router.get('/inventory/filters', getInventoryFilters);
 router.get('/inventory/dashboard', getInventoryDashboard);
 router.get('/inventory/summary', getInventorySummary);
 router.get('/inventory/rows', getInventoryRows);
-router.post('/inventory/upload', upload.single('file'), uploadInventory);
+router.post('/inventory/upload', uploadLimiter, upload.single('file'), uploadInventory);
 
 router.get('/risk-inventory/filters', getRiskInventoryFilters);
 router.get('/risk-inventory/dashboard', getRiskInventoryDashboard);
 router.get('/risk-inventory/summary', getRiskInventorySummary);
 router.get('/risk-inventory/rows', getRiskInventoryRows);
-router.post('/risk-inventory/upload', upload.single('file'), uploadRiskInventory);
+router.post('/risk-inventory/upload', uploadLimiter, upload.single('file'), uploadRiskInventory);
 
 module.exports = router;

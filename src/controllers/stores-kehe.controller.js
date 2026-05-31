@@ -10,6 +10,7 @@ const inventoryService = require('../services/kehe-inventory.service');
 const riskInventoryService = require('../services/kehe-risk-inventory.service');
 const { parseFiltersFromQuery, parsePage, parseLimit } = require('../utils/kehe-filters.utils');
 const { parseRiskFiltersFromQuery } = require('../utils/kehe-risk-filters.utils');
+const { releaseUploadFile } = require('../utils/upload.utils');
 
 exports.getChainStoreFilters = async (req, res) => {
   try {
@@ -91,6 +92,7 @@ exports.uploadChainStore = async (req, res) => {
       req.file.buffer,
       req.file.originalname
     );
+    releaseUploadFile(req);
 
     if (!docs.length) {
       return res.status(400).json({
@@ -103,7 +105,6 @@ exports.uploadChainStore = async (req, res) => {
     const payload = docs.map((doc) => ({
       ...doc,
       importBatchId: batchId,
-      sourceFileName: req.file.originalname,
     }));
 
     if (mode === 'replace') {
@@ -140,6 +141,7 @@ const genericUpload = (Model, label) => async (req, res) => {
       req.file.buffer,
       req.file.originalname
     );
+    releaseUploadFile(req);
 
     if (!docs.length) {
       return res.status(400).json({
@@ -161,9 +163,7 @@ const genericUpload = (Model, label) => async (req, res) => {
       onOrderQty: doc.onOrderQty ?? null,
       riskLevel: doc.riskLevel || '',
       daysOfSupply: doc.daysOfSupply ?? null,
-      raw: doc.raw || null,
       importBatchId: batchId,
-      sourceFileName: req.file.originalname,
     }));
 
     if (mode === 'replace') {
@@ -199,6 +199,7 @@ exports.uploadRiskInventory = async (req, res) => {
       req.file.buffer,
       req.file.originalname
     );
+    releaseUploadFile(req);
 
     if (!docs.length) {
       return res.status(400).json({
@@ -211,7 +212,6 @@ exports.uploadRiskInventory = async (req, res) => {
     const payload = docs.map((doc) => ({
       ...doc,
       importBatchId: batchId,
-      sourceFileName: req.file.originalname,
     }));
 
     if (mode === 'replace') {
@@ -281,6 +281,7 @@ exports.uploadInventory = async (req, res) => {
       req.file.buffer,
       req.file.originalname
     );
+    releaseUploadFile(req);
 
     if (!docs.length) {
       return res.status(400).json({
@@ -295,7 +296,6 @@ exports.uploadInventory = async (req, res) => {
       docs.map((doc) => ({
         ...doc,
         importBatchId: batchId,
-        sourceFileName: req.file.originalname,
       })),
       costMap
     );

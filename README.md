@@ -10,7 +10,7 @@ cp .env.example .env
 npm run dev
 ```
 
-API runs on `http://localhost:5000`
+API runs on `http://localhost:5010`
 
 ## Endpoints
 
@@ -27,5 +27,5 @@ API runs on `http://localhost:5000`
 |----------|-------------|
 | `MONGODB_URI` | MongoDB Atlas connection string |
 | `JWT_SECRET` | Token signing secret |
-| `PORT` | Server port (default 5000) |
+| `PORT` | Server port (default 5010) |
 | `CORS_ORIGIN` | Frontend origin |

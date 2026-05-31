@@ -3,6 +3,12 @@ const User = require('../models/User');
 const { SCREEN_GROUPS } = require('../constants/screens');
 const serializeUser = require('../utils/serializeUser');
 
+const isSignupEnabled = () => {
+  if (process.env.ALLOW_SIGNUP === 'true') return true;
+  if (process.env.ALLOW_SIGNUP === 'false') return false;
+  return process.env.NODE_ENV !== 'production';
+};
+
 const signToken = (user) => {
   const serialized = serializeUser(user);
   return jwt.sign(
@@ -20,6 +26,13 @@ const signToken = (user) => {
 
 exports.signup = async (req, res) => {
   try {
+    if (!isSignupEnabled()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Registration is disabled. Contact an administrator.',
+      });
+    }
+
     const { fullname, email, mobile, password } = req.body;
 
     if (!fullname || !email || !password) {
