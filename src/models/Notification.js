@@ -7,7 +7,7 @@ const notificationSchema = new mongoose.Schema(
     title: { type: String, required: true },
     message: { type: String, required: true },
     channelType: { type: String, enum: ['b2b', 'retail'], required: true },
-    poSource: { type: String, enum: ['sps', 'costco'], required: true },
+    poSource: { type: String, enum: ['sps', 'waitrose'], required: true },
     orderId: { type: mongoose.Schema.Types.ObjectId, required: true },
     poNumber: { type: String, default: '' },
     actorId: { type: String, default: '' },

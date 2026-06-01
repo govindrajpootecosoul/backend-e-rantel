@@ -5,7 +5,7 @@ const executiveService = require('../services/executive.service');
 const FILTER_FIELDS = executiveService.FILTER_FIELDS;
 const EXECUTIVE_MODELS = [
   getPurchaseOrderModelByCollection('purchase_orders_sps'),
-  getPurchaseOrderModelByCollection('purchase_orders_costco'),
+  getPurchaseOrderModelByCollection('purchase_orders_waitrose'),
 ];
 const prependAll = (arr) => ['All', ...arr.filter(Boolean).sort()];
 
@@ -20,7 +20,7 @@ const mergeDistinct = async (field) => {
 
 exports.getFilters = async (req, res) => {
   try {
-    const filters = { category: ['All', 'SPS', 'Costco'] };
+    const filters = { category: ['All', 'SPS', 'Waitrose'] };
 
     for (const field of FILTER_FIELDS) {
       if (field === 'category') continue;

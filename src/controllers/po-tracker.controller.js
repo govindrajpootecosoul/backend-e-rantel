@@ -135,7 +135,7 @@ exports.getOrderById = async (req, res) => {
     if (!poSource) {
       return res.status(400).json({
         success: false,
-        message: 'poSource is required (sps or costco)',
+        message: 'poSource is required (sps or waitrose)',
       });
     }
 
@@ -174,7 +174,7 @@ exports.updateOrder = async (req, res) => {
     if (!poSource) {
       return res.status(400).json({
         success: false,
-        message: 'poSource is required (sps or costco)',
+        message: 'poSource is required (sps or waitrose)',
       });
     }
 

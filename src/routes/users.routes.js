@@ -5,6 +5,7 @@ const {
   listUsers,
   createUser,
   updateUser,
+  deleteUser,
 } = require('../controllers/users.controller');
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.use(requireSuperAdmin);
 router.get('/', listUsers);
 router.post('/', createUser);
 router.patch('/:id', updateUser);
+router.delete('/:id', deleteUser);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const { formatCategoryLabel } = require('../utils/category.utils');
 
 const channelLabel = (channelType) => (channelType === 'b2b' ? 'B2B' : 'B2C');
 
@@ -40,7 +41,7 @@ async function notifyPoTrackerUpdate({
   const label = channelLabel(channelType);
   const poLabel = poNumber || 'PO';
   const title = `${label} PO updated — ${poLabel}`;
-  const message = `${actorName} updated ${poLabel} (${poSource.toUpperCase()}). ${formatChangeSummary(changes)}`;
+  const message = `${actorName} updated ${poLabel} (${formatCategoryLabel(poSource)}). ${formatChangeSummary(changes)}`;
 
   const docs = recipients.map((user) => ({
     recipientId: user._id,

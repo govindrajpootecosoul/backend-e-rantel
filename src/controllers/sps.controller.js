@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { getPurchaseOrderModel } = require('../models/PurchaseOrder');
 const {
   parsePage,
@@ -7,6 +8,9 @@ const {
   buildFilterOptionsFromGroup,
 } = require('../utils/sps.utils');
 const { buildDetailLists } = require('../utils/kpi-detail-lists');
+const { formatCategoryLabel } = require('../utils/category.utils');
+const { parseUploadBuffer } = require('../utils/sps-import.utils');
+const { releaseUploadFile } = require('../utils/upload.utils');
 
 const SPS_PROJECTION =
   'storeId distributor retailer channel poNumber poDate poRequestedDeliveryDate poAmount poStatus invoiceNumber invoiceDate invoiceAmount shippingCity yearMonthPo delayDays poDeliveryStatus upcGtin sku skuQty poSales invoiceQty status totalSales location warehouse qtyDiff amtDiff unitListCost commonPoDate commonInvoiceDate newPoDeliveryStatus newStatus srp updatedAt createdAt';
@@ -134,7 +138,7 @@ exports.getSummary = async (req, res) => {
       ]),
     ]);
 
-    const categoryLabel = storeId.toUpperCase();
+    const categoryLabel = formatCategoryLabel(storeId);
     const listRows = dedupedRows.map((row) => ({
       category: categoryLabel,
       storeId: row.storeId,
@@ -306,5 +310,66 @@ exports.getFilters = async (req, res) => {
   } catch (err) {
     console.error('getFilters error:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to load SPS filters' });
+  }
+};
+
+exports.uploadOrders = async (req, res) => {
+  try {
+    if (!req.file?.buffer?.length) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const storeId = (req.query.store || 'sps').toLowerCase();
+    const mode = req.query.mode === 'replace' ? 'replace' : 'append';
+    const PurchaseOrder = getPurchaseOrderModel(storeId);
+
+    const { docs, skipped, totalRead } = parseUploadBuffer(
+      req.file.buffer,
+      req.file.originalname,
+      storeId
+    );
+    releaseUploadFile(req);
+
+    if (!docs.length) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'No valid rows found. Each row needs at least a PO Number or SKU. Check column headers match the PO/SO export.',
+      });
+    }
+
+    const batchId = crypto.randomUUID();
+    const payload = docs.map((doc) => ({
+      ...doc,
+      importBatchId: batchId,
+    }));
+
+    if (mode === 'replace') {
+      await PurchaseOrder.deleteMany({});
+    }
+
+    const inserted = await PurchaseOrder.insertMany(payload, { ordered: false });
+    const label = formatCategoryLabel(storeId);
+
+    return res.json({
+      success: true,
+      message: `Imported ${inserted.length} ${label} rows (${mode})`,
+      data: {
+        storeId,
+        mode,
+        imported: inserted.length,
+        skipped: skipped.length,
+        totalRead,
+        importBatchId: batchId,
+      },
+    });
+  } catch (err) {
+    releaseUploadFile(req);
+    console.error('uploadOrders error:', err.message);
+    const status = err.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.statusCode ? err.message : 'Failed to import PO/SO file',
+    });
   }
 };

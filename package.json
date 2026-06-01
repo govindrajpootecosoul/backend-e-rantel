@@ -5,7 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "build": "node -e \"require('./src/app'); console.log('Backend ready — no compile step (plain Node.js). Use npm start to run.')\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

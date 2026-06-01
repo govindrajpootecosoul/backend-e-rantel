@@ -14,9 +14,11 @@ const EDITABLE_FIELDS = [
   { key: 'status', label: 'Status' },
 ];
 
+const { normalizeCategoryKey } = require('./category.utils');
+
 const parsePoSource = (value) => {
-  const key = String(value || '').toLowerCase();
-  if (key === 'costco') return 'costco';
+  const key = normalizeCategoryKey(String(value || '').toLowerCase());
+  if (key === 'waitrose') return 'waitrose';
   if (key === 'sps') return 'sps';
   return null;
 };

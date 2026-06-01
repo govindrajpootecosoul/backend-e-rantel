@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const {
   ROLES,
   SCREEN_IDS,
@@ -152,5 +153,46 @@ exports.updateUser = async (req, res) => {
   } catch (err) {
     console.error('updateUser error:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to update user' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (String(req.user.id) === String(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account',
+      });
+    }
+
+    const user = await User.findById(id).lean();
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (isSuperAdmin(user)) {
+      const superAdminCount = await User.countDocuments({
+        role: { $in: SUPER_ADMIN_ROLES },
+      });
+      if (superAdminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete the only super admin',
+        });
+      }
+    }
+
+    await Notification.deleteMany({ recipientId: id });
+    await User.findByIdAndDelete(id);
+
+    return res.json({
+      success: true,
+      message: 'User deleted',
+    });
+  } catch (err) {
+    console.error('deleteUser error:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to delete user' });
   }
 };

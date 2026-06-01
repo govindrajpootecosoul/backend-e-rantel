@@ -1,13 +1,14 @@
 const { getPurchaseOrderModelByCollection } = require('../models/PurchaseOrder');
+const { formatCategoryLabel, categoryKeysMatch } = require('../utils/category.utils');
 const executiveCache = require('./executiveCache');
 const { matchesDateFilter, resolvePoMonthKey } = require('../utils/dateFilters');
 const { buildDetailLists } = require('../utils/kpi-detail-lists');
 
-const EXECUTIVE_COLLECTIONS = ['purchase_orders_sps', 'purchase_orders_costco'];
+const EXECUTIVE_COLLECTIONS = ['purchase_orders_sps', 'purchase_orders_waitrose'];
 
 const CATEGORY_LABEL_BY_COLLECTION = {
   purchase_orders_sps: 'SPS',
-  purchase_orders_costco: 'Costco',
+  purchase_orders_waitrose: 'Waitrose',
 };
 
 const FILTER_FIELDS = [
@@ -62,16 +63,13 @@ const filterCacheKey = (filters = {}) => JSON.stringify(filters);
 
 const normalizeCategoryFilter = (value) => {
   if (!value || value === 'All') return null;
-  const key = String(value).toLowerCase();
-  if (key === 'sps') return 'SPS';
-  if (key === 'costco') return 'Costco';
-  return String(value);
+  return formatCategoryLabel(value);
 };
 
 const applyCategoryFilter = (rows, filters = {}) => {
   const want = normalizeCategoryFilter(filters.category);
   if (!want) return rows;
-  return rows.filter((row) => String(row.category || '') === want);
+  return rows.filter((row) => categoryKeysMatch(row.category || '', want));
 };
 
 const dedupeRows = (rows) => {
@@ -236,7 +234,7 @@ const fetchRowsFromSource = async (collection, filters = {}) => {
 
 const fetchRowsFromDb = async (filters = {}) => {
   // Always load from both collections; apply category filter in-memory.
-  // This guarantees "All" = SPS + Costco, and category selection works reliably.
+  // This guarantees "All" = SPS + Waitrose, and category selection works reliably.
   const sources = EXECUTIVE_COLLECTIONS;
   const chunks = await Promise.all(
     sources.map((source) => fetchRowsFromSource(source, filters))
@@ -283,7 +281,7 @@ const loadFilteredRows = async (rawFilters = {}, { forceRefresh = false } = {}) 
     let rows;
 
     if (!hasNonCategoryFilters(filters)) {
-      // For Option B (All = SPS + Costco sum), always rebuild the "All" dataset
+      // For Option B (All = SPS + Waitrose sum), always rebuild the "All" dataset
       // from both collections to avoid any stale single-source cache.
       if (filters.category === 'All') {
         rows = await fetchAllRowsFromDb();

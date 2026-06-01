@@ -35,11 +35,17 @@ const purchaseOrderSchema = new mongoose.Schema(
 
 const COLLECTION_BY_STORE = {
   sps: 'purchase_orders_sps',
-  costco: 'purchase_orders_costco',
+  waitrose: 'purchase_orders_waitrose',
+};
+
+const normalizeStoreId = (storeId) => {
+  const store = String(storeId || 'sps').toLowerCase();
+  if (store === 'costco') return 'waitrose';
+  return store;
 };
 
 const getPurchaseOrderModel = (storeId = 'sps') => {
-  const store = String(storeId).toLowerCase();
+  const store = normalizeStoreId(storeId);
   const collection = COLLECTION_BY_STORE[store] || COLLECTION_BY_STORE.sps;
   const modelName = `PurchaseOrder_${store}`;
 

@@ -2,7 +2,7 @@ const { computedFieldsStage, parsePage, parseLimit } = require('./sps.utils');
 
 const COLLECTIONS = {
   sps: 'purchase_orders_sps',
-  costco: 'purchase_orders_costco',
+  waitrose: 'purchase_orders_waitrose',
 };
 
 const CHANNEL_MATCH = {
@@ -10,9 +10,11 @@ const CHANNEL_MATCH = {
   retail: { channel: { $regex: /retail/i } },
 };
 
+const { normalizeCategoryKey } = require('./category.utils');
+
 const parseCategory = (value) => {
-  const key = String(value || 'all').toLowerCase();
-  if (key === 'sps' || key === 'costco') return key;
+  const key = normalizeCategoryKey(String(value || 'all').toLowerCase());
+  if (key === 'sps' || key === 'waitrose') return key;
   return 'all';
 };
 
@@ -215,7 +217,7 @@ const mergeSummaryMetrics = (a, b) => ({
 
 const buildListPipeline = ({ channelType, category, status, search, page, limit }) => {
   const skip = (page - 1) * limit;
-  const poSource = category === 'costco' ? 'costco' : 'sps';
+  const poSource = category === 'waitrose' ? 'waitrose' : 'sps';
 
   return [
     ...buildSingleSourceStages(poSource, channelType),
@@ -235,7 +237,7 @@ const buildListPipeline = ({ channelType, category, status, search, page, limit 
 };
 
 const buildSummaryPipeline = ({ channelType, category, status, search }) => {
-  const poSource = category === 'costco' ? 'costco' : 'sps';
+  const poSource = category === 'waitrose' ? 'waitrose' : 'sps';
   return [
     ...buildSingleSourceStages(poSource, channelType),
     ...buildFilterStages({ status, search }),
@@ -244,7 +246,7 @@ const buildSummaryPipeline = ({ channelType, category, status, search }) => {
 };
 
 const buildStatusOptionsPipeline = ({ channelType, category }) => {
-  const poSource = category === 'costco' ? 'costco' : 'sps';
+  const poSource = category === 'waitrose' ? 'waitrose' : 'sps';
   return [
     ...buildSingleSourceStages(poSource, channelType),
     computedFieldsStage,
@@ -256,7 +258,7 @@ const buildStatusOptionsPipeline = ({ channelType, category }) => {
 
 const resolvePrimaryModel = (category) => {
   const { getPurchaseOrderModel } = require('../models/PurchaseOrder');
-  if (category === 'costco') return getPurchaseOrderModel('costco');
+  if (category === 'waitrose') return getPurchaseOrderModel('waitrose');
   return getPurchaseOrderModel('sps');
 };
 
@@ -300,20 +302,20 @@ const statusesOnCollection = async (Model, poSource, { channelType }) => {
 /** Category All: query each collection separately, merge in app (avoids $unionWith sort limits). */
 const fetchMergedOrders = async ({ channelType, status, search, page, limit }) => {
   const spsModel = resolvePrimaryModel('sps');
-  const costcoModel = resolvePrimaryModel('costco');
+  const waitroseModel = resolvePrimaryModel('waitrose');
   const skip = (page - 1) * limit;
   const fetchLimit = skip + limit;
   const filters = { channelType, status, search };
 
-  const [spsTotal, costcoTotal, spsRows, costcoRows] = await Promise.all([
+  const [spsTotal, waitroseTotal, spsRows, waitroseRows] = await Promise.all([
     countOnCollection(spsModel, 'sps', filters),
-    countOnCollection(costcoModel, 'costco', filters),
+    countOnCollection(waitroseModel, 'waitrose', filters),
     listOnCollection(spsModel, 'sps', filters, fetchLimit),
-    listOnCollection(costcoModel, 'costco', filters, fetchLimit),
+    listOnCollection(waitroseModel, 'waitrose', filters, fetchLimit),
   ]);
 
-  const rows = [...spsRows, ...costcoRows].sort(comparePoRows).slice(skip, skip + limit);
-  const total = spsTotal + costcoTotal;
+  const rows = [...spsRows, ...waitroseRows].sort(comparePoRows).slice(skip, skip + limit);
+  const total = spsTotal + waitroseTotal;
 
   return {
     rows,
@@ -324,28 +326,28 @@ const fetchMergedOrders = async ({ channelType, status, search, page, limit }) =
 
 const fetchMergedSummary = async ({ channelType, status, search }) => {
   const spsModel = resolvePrimaryModel('sps');
-  const costcoModel = resolvePrimaryModel('costco');
+  const waitroseModel = resolvePrimaryModel('waitrose');
   const filters = { channelType, status, search };
 
-  const [spsSummary, costcoSummary] = await Promise.all([
+  const [spsSummary, waitroseSummary] = await Promise.all([
     summaryOnCollection(spsModel, 'sps', filters),
-    summaryOnCollection(costcoModel, 'costco', filters),
+    summaryOnCollection(waitroseModel, 'waitrose', filters),
   ]);
 
-  return mergeSummaryMetrics(spsSummary, costcoSummary);
+  return mergeSummaryMetrics(spsSummary, waitroseSummary);
 };
 
 const fetchMergedStatuses = async ({ channelType }) => {
   const spsModel = resolvePrimaryModel('sps');
-  const costcoModel = resolvePrimaryModel('costco');
+  const waitroseModel = resolvePrimaryModel('waitrose');
   const filters = { channelType };
 
-  const [spsStatuses, costcoStatuses] = await Promise.all([
+  const [spsStatuses, waitroseStatuses] = await Promise.all([
     statusesOnCollection(spsModel, 'sps', filters),
-    statusesOnCollection(costcoModel, 'costco', filters),
+    statusesOnCollection(waitroseModel, 'waitrose', filters),
   ]);
 
-  return ['All', ...new Set([...spsStatuses, ...costcoStatuses])].sort((a, b) => {
+  return ['All', ...new Set([...spsStatuses, ...waitroseStatuses])].sort((a, b) => {
     if (a === 'All') return -1;
     if (b === 'All') return 1;
     return a.localeCompare(b);

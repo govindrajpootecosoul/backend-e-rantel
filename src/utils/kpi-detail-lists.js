@@ -1,3 +1,5 @@
+const { formatCategoryLabel } = require('./category.utils');
+
 const uniqueList = (rows, field) => {
   const set = new Set();
   for (const row of rows) {
@@ -13,7 +15,7 @@ const buildPurchaseOrderList = (rows) => {
     const key = `${row.category || ''}|${row.storeId || ''}|${row.poNumber || ''}`;
     if (!key.endsWith('||') && !map.has(key)) {
       map.set(key, {
-        category: row.category || '—',
+        category: formatCategoryLabel(row.category || '—'),
         storeId: row.storeId || '—',
         poNumber: row.poNumber || '—',
         poSales: Number(row.poSales) || 0,

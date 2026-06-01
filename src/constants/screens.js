@@ -2,7 +2,7 @@
 const SCREEN_IDS = [
   'executive',
   'po_so_sps',
-  'po_so_costco',
+  'po_so_waitrose',
   'po_tracker_b2b',
   'po_tracker_retails',
   'stores_kehe',
@@ -23,7 +23,7 @@ const SCREEN_GROUPS = [
     comingSoon: false,
     screens: [
       { id: 'po_so_sps', label: 'SPS' },
-      { id: 'po_so_costco', label: 'Costco' },
+      { id: 'po_so_waitrose', label: 'Waitrose' },
     ],
   },
   {

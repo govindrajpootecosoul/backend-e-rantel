@@ -602,7 +602,7 @@
                 {
                   "key": "category",
                   "value": "all",
-                  "description": "all | sps | costco"
+                  "description": "all | sps | waitrose"
                 }
               ]
             }
@@ -638,7 +638,7 @@
                 {
                   "key": "category",
                   "value": "all",
-                  "description": "all | sps | costco"
+                  "description": "all | sps | waitrose"
                 },
                 {
                   "key": "status",
@@ -690,7 +690,7 @@
                 {
                   "key": "category",
                   "value": "all",
-                  "description": "all | sps | costco"
+                  "description": "all | sps | waitrose"
                 },
                 {
                   "key": "status",
@@ -730,7 +730,7 @@
                 {
                   "key": "poSource",
                   "value": "sps",
-                  "description": "sps | costco"
+                  "description": "sps | waitrose"
                 }
               ]
             }
@@ -766,7 +766,7 @@
                 {
                   "key": "poSource",
                   "value": "sps",
-                  "description": "sps | costco"
+                  "description": "sps | waitrose"
                 },
                 {
                   "key": "channelType",
