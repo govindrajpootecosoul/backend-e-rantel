@@ -8,6 +8,7 @@ const SCREEN_IDS = [
   'stores_kehe',
   'stores_sprouts',
   'demand_planner',
+  'payment_deduction',
 ];
 
 const SCREEN_GROUPS = [
@@ -49,6 +50,12 @@ const SCREEN_GROUPS = [
     label: 'Demand Planner',
     comingSoon: true,
     screens: [{ id: 'demand_planner', label: 'Demand Planner' }],
+  },
+  {
+    id: 'payment_deduction',
+    label: 'Payment & Deduction',
+    comingSoon: true,
+    screens: [{ id: 'payment_deduction', label: 'Payment & Deduction' }],
   },
 ];
 
