@@ -51,7 +51,7 @@ app.use(express.json({ limit: '2mb' }));
 app.use('/api', apiLimiter);
 
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, service: 'E-Rental API' });
+  res.json({ success: true, service: 'Retail Central API' });
 });
 
 app.use('/api/v1/auth', authRoutes);

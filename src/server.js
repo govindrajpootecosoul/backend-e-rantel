@@ -31,7 +31,7 @@ const start = async () => {
     validateEnv();
     await connectDB();
     const server = app.listen(PORT, () => {
-      console.log(`E-Rental API running on port ${PORT}`);
+      console.log(`Retail Central API running on port ${PORT}`);
     });
 
     server.on('error', (err) => {

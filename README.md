@@ -1,6 +1,6 @@
-# E-Rental Backend
+# Retail Central Backend
 
-Node.js + Express API for the E-Rental executive analytics platform.
+Node.js + Express API for the Retail Central executive analytics platform.
 
 ## Setup
 
