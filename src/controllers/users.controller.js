@@ -7,6 +7,8 @@ const {
   SUPER_ADMIN_ROLES,
   isSuperAdmin,
   isSuperAdminRole,
+  isAdminRole,
+  adminDefaultScreenAccess,
   normalizeRoleForStorage,
 } = require('../constants/screens');
 const serializeUser = require('../utils/serializeUser');
@@ -76,7 +78,11 @@ exports.createUser = async (req, res) => {
       password,
       role: normalizeRoleForStorage(role),
       status: status === 'inactive' ? 'inactive' : 'active',
-      screenAccess: isSuperAdminRole(role) ? SCREEN_IDS : screenCheck.value,
+      screenAccess: isSuperAdminRole(role)
+        ? SCREEN_IDS
+        : isAdminRole(role)
+          ? adminDefaultScreenAccess()
+          : screenCheck.value,
     });
 
     return res.status(201).json({
@@ -130,6 +136,8 @@ exports.updateUser = async (req, res) => {
 
     if (isSuperAdminRole(finalRole)) {
       user.screenAccess = [...SCREEN_IDS];
+    } else if (isAdminRole(finalRole)) {
+      user.screenAccess = adminDefaultScreenAccess();
     } else if (screenAccess !== undefined) {
       const screenCheck = validateScreenAccess(screenAccess);
       if (!screenCheck.ok) {

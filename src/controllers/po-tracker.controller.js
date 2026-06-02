@@ -19,6 +19,11 @@ const {
   buildHistoryEntry,
 } = require('../utils/po-tracker-history.utils');
 const { notifyPoTrackerUpdate } = require('../services/notification.service');
+const { isAdminRole } = require('../constants/screens');
+const { ADMIN_FIELD_KEYS } = require('../constants/po-tracker-admin');
+const { STANDARD_EDITABLE_FIELDS } = require('../utils/po-tracker-history.utils');
+
+const standardFieldKeys = STANDARD_EDITABLE_FIELDS.map((f) => f.key);
 
 const emptySummary = () => ({
   totalPos: 0,
@@ -189,8 +194,38 @@ exports.updateOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Purchase order not found' });
     }
 
-    const payload = buildUpdatePayload(before, req.body);
-    const changes = buildChangeLog(before, payload);
+    const role = req.user?.role || 'user';
+    const bodyKeys = Object.keys(req.body || {});
+
+    if (isAdminRole(role)) {
+      const forbidden = bodyKeys.filter((k) => standardFieldKeys.includes(k));
+      if (forbidden.length > 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin can only update acknowledged status and fulfillment fields',
+        });
+      }
+    } else {
+      const forbidden = bodyKeys.filter((k) => ADMIN_FIELD_KEYS.includes(k));
+      if (forbidden.length > 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Admin can update acknowledged status and fulfillment fields',
+        });
+      }
+    }
+
+    let payload;
+    try {
+      payload = buildUpdatePayload(before, req.body, role);
+    } catch (err) {
+      if (err.statusCode === 400) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      throw err;
+    }
+
+    const changes = buildChangeLog(before, payload, role);
 
     if (changes.length === 0) {
       return res.json({
@@ -204,7 +239,18 @@ exports.updateOrder = async (req, res) => {
       });
     }
 
-    const historyEntry = buildHistoryEntry(req.user, changes);
+    if (isAdminRole(role)) {
+      payload.akUpdateLog = {
+        at: new Date(),
+        by: {
+          name: req.user?.name || 'Unknown',
+          email: req.user?.email || '',
+        },
+        changes,
+      };
+    }
+
+    const historyEntry = buildHistoryEntry(req.user, changes, role);
     const row = await PurchaseOrder.findByIdAndUpdate(
       req.params.id,
       {

@@ -55,7 +55,9 @@ const SCREEN_GROUPS = [
 /** Matches DB values: `superadmin` (primary) and legacy `super_admin` */
 const SUPER_ADMIN_ROLES = ['superadmin', 'super_admin'];
 
-const ROLES = ['user', 'superadmin', 'super_admin'];
+const ADMIN_ROLES = ['admin'];
+
+const ROLES = ['user', 'admin', 'superadmin', 'super_admin'];
 
 const normalizeRoleKey = (role) => {
   if (!role) return '';
@@ -64,14 +66,23 @@ const normalizeRoleKey = (role) => {
 
 const isSuperAdminRole = (role) => normalizeRoleKey(role) === 'superadmin';
 
+const isAdminRole = (role) => normalizeRoleKey(role) === 'admin';
+
 const isSuperAdmin = (user) => isSuperAdminRole(user?.role);
 
-const normalizeRoleForStorage = (role) => (isSuperAdminRole(role) ? 'superadmin' : 'user');
+const normalizeRoleForStorage = (role) => {
+  if (isSuperAdminRole(role)) return 'superadmin';
+  if (isAdminRole(role)) return 'admin';
+  return 'user';
+};
+
+const adminDefaultScreenAccess = () => ['po_tracker_b2b', 'po_tracker_retails'];
 
 const fullScreenAccess = () => [...SCREEN_IDS];
 
 const normalizeScreenAccess = (screenAccess, role) => {
   if (isSuperAdminRole(role)) return fullScreenAccess();
+  if (isAdminRole(role)) return adminDefaultScreenAccess();
   if (!Array.isArray(screenAccess)) return [];
   return screenAccess.filter((id) => SCREEN_IDS.includes(id));
 };
@@ -86,11 +97,14 @@ module.exports = {
   SCREEN_IDS,
   SCREEN_GROUPS,
   SUPER_ADMIN_ROLES,
+  ADMIN_ROLES,
   ROLES,
   isSuperAdminRole,
+  isAdminRole,
   isSuperAdmin,
   normalizeRoleForStorage,
   normalizeScreenAccess,
+  adminDefaultScreenAccess,
   fullScreenAccess,
   hasScreenAccess,
   normalizeRoleKey,

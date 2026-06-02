@@ -1,4 +1,7 @@
-const EDITABLE_FIELDS = [
+const { isAdminRole } = require('../constants/screens');
+const { normalizeAkStatus } = require('../constants/po-tracker-admin');
+
+const STANDARD_EDITABLE_FIELDS = [
   { key: 'poNumber', label: 'PO Number' },
   { key: 'channel', label: 'Channel' },
   { key: 'distributor', label: 'Distributor' },
@@ -13,6 +16,22 @@ const EDITABLE_FIELDS = [
   { key: 'poLink', label: 'PO Link' },
   { key: 'status', label: 'Status' },
 ];
+
+const ADMIN_EDITABLE_FIELDS = [
+  { key: 'akStatus', label: 'Status (Acknowledged)' },
+  { key: 'pickingList', label: 'Picking List' },
+  { key: 'shippedBy', label: 'Shipped By' },
+  { key: 'signedBol', label: 'Signed BOL' },
+  { key: 'pod', label: 'POD' },
+  { key: 'trackingLink', label: 'Tracking Link' },
+  { key: 'trackingId', label: 'Tracking ID' },
+];
+
+/** @deprecated use STANDARD_EDITABLE_FIELDS */
+const EDITABLE_FIELDS = STANDARD_EDITABLE_FIELDS;
+
+const fieldsForRole = (role) =>
+  isAdminRole(role) ? ADMIN_EDITABLE_FIELDS : STANDARD_EDITABLE_FIELDS;
 
 const { normalizeCategoryKey } = require('./category.utils');
 
@@ -65,10 +84,25 @@ const readField = (doc, key) => {
   if (key === 'status') {
     return doc.newStatus || doc.status || doc.poStatus || '';
   }
+  if (key === 'akStatus') {
+    return doc.akStatus || '';
+  }
   return doc[key];
 };
 
 const coerceIncoming = (key, value, fieldMeta) => {
+  if (key === 'akStatus') {
+    if (value === null || value === undefined || value === '') return '';
+    const normalized = normalizeAkStatus(value);
+    if (normalized === null) {
+      const err = new Error(
+        'Invalid AK Status. Allowed: Complete, Cancelled, Order placed at warehouse, Scheduled for pickup, Not started'
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+    return normalized;
+  }
   if (value === null || value === undefined || value === '') {
     return fieldMeta?.date ? null : fieldMeta?.number ? null : '';
   }
@@ -101,10 +135,11 @@ const valuesEqual = (beforeVal, afterVal, fieldMeta) => {
 };
 
 /** Only fields that truly changed (dates compared by calendar day in UTC). */
-const buildUpdatePayload = (before, body = {}) => {
+const buildUpdatePayload = (before, body = {}, role = 'user') => {
   const payload = {};
+  const editableFields = fieldsForRole(role);
 
-  for (const field of EDITABLE_FIELDS) {
+  for (const field of editableFields) {
     if (body[field.key] === undefined) continue;
 
     const incoming = coerceIncoming(field.key, body[field.key], field);
@@ -129,10 +164,11 @@ const buildUpdatePayload = (before, body = {}) => {
   return payload;
 };
 
-const buildChangeLog = (before, payload) => {
+const buildChangeLog = (before, payload, role = 'user') => {
   const changes = [];
+  const editableFields = fieldsForRole(role);
 
-  for (const field of EDITABLE_FIELDS) {
+  for (const field of editableFields) {
     let incoming;
     if (field.key === 'status') {
       if (payload.status === undefined) continue;
@@ -156,8 +192,8 @@ const buildChangeLog = (before, payload) => {
   return changes;
 };
 
-const buildHistoryEntry = (user, changes) => ({
-  action: 'Entry updated',
+const buildHistoryEntry = (user, changes, role = 'user') => ({
+  action: isAdminRole(role) ? 'Acknowledged fields updated' : 'Entry updated',
   at: new Date(),
   by: {
     id: user?.id ? String(user.id) : '',
@@ -169,6 +205,9 @@ const buildHistoryEntry = (user, changes) => ({
 
 module.exports = {
   EDITABLE_FIELDS,
+  STANDARD_EDITABLE_FIELDS,
+  ADMIN_EDITABLE_FIELDS,
+  fieldsForRole,
   parsePoSource,
   buildUpdatePayload,
   buildChangeLog,

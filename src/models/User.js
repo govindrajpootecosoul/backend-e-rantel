@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { fullScreenAccess, isSuperAdminRole, normalizeRoleForStorage } = require('../constants/screens');
+const {
+  fullScreenAccess,
+  adminDefaultScreenAccess,
+  isSuperAdminRole,
+  isAdminRole,
+  normalizeRoleForStorage,
+} = require('../constants/screens');
 
 const userSchema = new mongoose.Schema(
   {
@@ -31,6 +37,9 @@ userSchema.pre('save', function applySuperAdminDefaults(next) {
   if (isSuperAdminRole(this.role)) {
     this.role = normalizeRoleForStorage(this.role);
     this.screenAccess = fullScreenAccess();
+  } else if (isAdminRole(this.role)) {
+    this.role = normalizeRoleForStorage(this.role);
+    this.screenAccess = adminDefaultScreenAccess();
   }
   return next();
 });
