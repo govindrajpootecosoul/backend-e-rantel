@@ -215,6 +215,29 @@ const mergeSummaryMetrics = (a, b) => ({
   fulfilled: (a.fulfilled || 0) + (b.fulfilled || 0),
 });
 
+const buildGroupByPoStages = () => [
+  { $sort: { updatedAt: -1, _id: -1 } },
+  {
+    $group: {
+      _id: { poSource: '$_poSource', poNumber: '$poNumber' },
+      doc: { $first: '$$ROOT' },
+      skus: { $addToSet: '$sku' },
+    },
+  },
+  {
+    $addFields: {
+      'doc.skus': {
+        $filter: {
+          input: '$skus',
+          as: 'sku',
+          cond: { $and: [{ $ne: ['$$sku', null] }, { $ne: ['$$sku', ''] }] },
+        },
+      },
+    },
+  },
+  { $replaceRoot: { newRoot: '$doc' } },
+];
+
 const buildListPipeline = ({ channelType, category, status, search, page, limit }) => {
   const skip = (page - 1) * limit;
   const poSource = category === 'waitrose' ? 'waitrose' : 'sps';
@@ -231,6 +254,27 @@ const buildListPipeline = ({ channelType, category, status, search, page, limit 
           { $limit: limit },
           { $project: { __v: 0 } },
         ],
+      },
+    },
+  ];
+};
+
+const buildListPipelineGroupedByPo = ({ channelType, category, status, search, page, limit }) => {
+  const skip = (page - 1) * limit;
+  const poSource = category === 'waitrose' ? 'waitrose' : 'sps';
+
+  const base = [
+    ...buildSingleSourceStages(poSource, channelType),
+    ...buildFilterStages({ status, search }),
+    ...buildGroupByPoStages(),
+    { $project: { __v: 0 } },
+  ];
+
+  return [
+    {
+      $facet: {
+        metadata: [...base, { $count: 'total' }],
+        rows: [...base, { $skip: skip }, { $limit: limit }],
       },
     },
   ];
@@ -272,11 +316,38 @@ const countOnCollection = async (Model, poSource, { channelType, status, search 
   return result?.total ?? 0;
 };
 
+const countGroupedOnCollection = async (Model, poSource, { channelType, status, search }) => {
+  const pipeline = [
+    ...buildSingleSourceStages(poSource, channelType),
+    ...buildFilterStages({ status, search }),
+    ...buildGroupByPoStages(),
+    { $count: 'total' },
+  ];
+  const [result] = await aggregateAllowDisk(Model, pipeline);
+  return result?.total ?? 0;
+};
+
 const listOnCollection = async (Model, poSource, { channelType, status, search }, fetchLimit) => {
   const pipeline = [
     ...buildSingleSourceStages(poSource, channelType),
     ...buildFilterStages({ status, search }),
     { $sort: { updatedAt: -1, _id: -1 } },
+    { $limit: fetchLimit },
+    { $project: { __v: 0 } },
+  ];
+  return aggregateAllowDisk(Model, pipeline);
+};
+
+const listGroupedOnCollection = async (
+  Model,
+  poSource,
+  { channelType, status, search },
+  fetchLimit
+) => {
+  const pipeline = [
+    ...buildSingleSourceStages(poSource, channelType),
+    ...buildFilterStages({ status, search }),
+    ...buildGroupByPoStages(),
     { $limit: fetchLimit },
     { $project: { __v: 0 } },
   ];
@@ -312,6 +383,30 @@ const fetchMergedOrders = async ({ channelType, status, search, page, limit }) =
     countOnCollection(waitroseModel, 'waitrose', filters),
     listOnCollection(spsModel, 'sps', filters, fetchLimit),
     listOnCollection(waitroseModel, 'waitrose', filters, fetchLimit),
+  ]);
+
+  const rows = [...spsRows, ...waitroseRows].sort(comparePoRows).slice(skip, skip + limit);
+  const total = spsTotal + waitroseTotal;
+
+  return {
+    rows,
+    total,
+    totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+  };
+};
+
+const fetchMergedOrdersGroupedByPo = async ({ channelType, status, search, page, limit }) => {
+  const spsModel = resolvePrimaryModel('sps');
+  const waitroseModel = resolvePrimaryModel('waitrose');
+  const skip = (page - 1) * limit;
+  const fetchLimit = skip + limit;
+  const filters = { channelType, status, search };
+
+  const [spsTotal, waitroseTotal, spsRows, waitroseRows] = await Promise.all([
+    countGroupedOnCollection(spsModel, 'sps', filters),
+    countGroupedOnCollection(waitroseModel, 'waitrose', filters),
+    listGroupedOnCollection(spsModel, 'sps', filters, fetchLimit),
+    listGroupedOnCollection(waitroseModel, 'waitrose', filters, fetchLimit),
   ]);
 
   const rows = [...spsRows, ...waitroseRows].sort(comparePoRows).slice(skip, skip + limit);
@@ -361,10 +456,12 @@ module.exports = {
   parseCategory,
   parseChannelType,
   buildListPipeline,
+  buildListPipelineGroupedByPo,
   buildSummaryPipeline,
   buildStatusOptionsPipeline,
   resolvePrimaryModel,
   fetchMergedOrders,
+  fetchMergedOrdersGroupedByPo,
   fetchMergedSummary,
   fetchMergedStatuses,
 };

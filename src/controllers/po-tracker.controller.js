@@ -5,10 +5,12 @@ const {
   parseCategory,
   parseChannelType,
   buildListPipeline,
+  buildListPipelineGroupedByPo,
   buildSummaryPipeline,
   buildStatusOptionsPipeline,
   resolvePrimaryModel,
   fetchMergedOrders,
+  fetchMergedOrdersGroupedByPo,
   fetchMergedSummary,
   fetchMergedStatuses,
 } = require('../utils/po-tracker.utils');
@@ -43,25 +45,35 @@ exports.getOrders = async (req, res) => {
     const limit = parseLimit(req.query.limit, 25);
     const status = req.query.status || 'All';
     const search = req.query.search || '';
+    const groupBy = String(req.query.groupBy || '').toLowerCase();
+    const groupByPo = groupBy === 'po';
 
     let total;
     let totalPages;
     let rows;
 
     if (category === 'all') {
-      const merged = await fetchMergedOrders({
-        channelType,
-        status,
-        search,
-        page,
-        limit,
-      });
+      const merged = groupByPo
+        ? await fetchMergedOrdersGroupedByPo({
+            channelType,
+            status,
+            search,
+            page,
+            limit,
+          })
+        : await fetchMergedOrders({
+            channelType,
+            status,
+            search,
+            page,
+            limit,
+          });
       rows = merged.rows;
       total = merged.total;
       totalPages = merged.totalPages;
     } else {
       const PurchaseOrder = resolvePrimaryModel(category);
-      const pipeline = buildListPipeline({
+      const pipeline = (groupByPo ? buildListPipelineGroupedByPo : buildListPipeline)({
         channelType,
         category,
         status,
