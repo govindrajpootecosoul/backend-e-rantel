@@ -60,9 +60,13 @@ const HEADER_ALIASES = {
   gtin: 'upcGtin',
   sku: 'sku',
   sku_qty: 'skuQty',
+  sku_quantity: 'skuQty',
   po_sku_qty: 'skuQty',
+  po_sku_quantity: 'skuQty',
   po_sales: 'poSales',
   invoice_qty: 'invoiceQty',
+  invoice_quantity: 'invoiceQty',
+  inv_qty: 'invoiceQty',
   status: 'status',
   total_sales: 'totalSales',
   location: 'location',
@@ -142,28 +146,42 @@ const rowFromRecord = (record) => {
   return doc;
 };
 
+/** Blank Excel cells → 0 in DB so KPI SUM matches Excel SUM on each column. */
+const excelNumericDefaultZero = (row) => {
+  for (const field of NUMERIC_FIELDS) {
+    if (row[field] == null) row[field] = 0;
+  }
+};
+
 const enrichRow = (doc, storeId) => {
   const row = { ...doc, storeId: doc.storeId || storeId, updatedAt: new Date() };
 
   if (row.poStatus && !row.status) row.status = row.poStatus;
   if (row.status && !row.poStatus) row.poStatus = row.status;
-  if (row.poAmount != null && row.poSales == null) row.poSales = row.poAmount;
-  if (row.invoiceAmount != null && row.totalSales == null) row.totalSales = row.invoiceAmount;
   if (row.poDate && !row.commonPoDate) row.commonPoDate = row.poDate;
   if (row.invoiceDate && !row.commonInvoiceDate) row.commonInvoiceDate = row.invoiceDate;
 
-  const skuQty = row.skuQty ?? 0;
-  const invoiceQty = row.invoiceQty ?? 0;
-  const poSales = row.poSales ?? row.poAmount ?? 0;
-  const totalSales = row.totalSales ?? row.invoiceAmount ?? 0;
-
-  if (row.qtyDiff == null) row.qtyDiff = skuQty - invoiceQty;
-  if (row.amtDiff == null) row.amtDiff = poSales - totalSales;
+  excelNumericDefaultZero(row);
 
   return row;
 };
 
+/** Legacy: at least one identifier (used where single field is valid). */
 const hasMinimumData = (doc) => Boolean(doc.poNumber || doc.sku);
+
+/** Retail PO/SO rows must have both PO # and SKU (matches Excel data rows, drops ghost lines). */
+const isImportablePoSkuRow = (doc) => {
+  const po = String(doc.poNumber ?? '').trim();
+  const sku = String(doc.sku ?? '').trim();
+  return po.length > 0 && sku.length > 0;
+};
+
+const isBlankSpreadsheetRecord = (record) =>
+  Object.values(record).every((value) => {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'string' && value.trim() === '') return true;
+    return false;
+  });
 
 module.exports = {
   normalizeHeaderKey,
@@ -171,6 +189,8 @@ module.exports = {
   rowFromRecord,
   enrichRow,
   hasMinimumData,
+  isImportablePoSkuRow,
+  isBlankSpreadsheetRecord,
   parseNumber,
   parseDate,
 };

@@ -1,4 +1,5 @@
 const { formatCategoryLabel } = require('./category.utils');
+const { effectiveInvoiceQty } = require('./effective-qty.utils');
 
 const uniqueList = (rows, field) => {
   const set = new Set();
@@ -13,15 +14,22 @@ const buildPurchaseOrderList = (rows) => {
   const map = new Map();
   for (const row of rows) {
     const key = `${row.category || ''}|${row.storeId || ''}|${row.poNumber || ''}`;
-    if (!key.endsWith('||') && !map.has(key)) {
+    if (key.endsWith('||')) continue;
+    const poSales = Number(row.poSales) || 0;
+    const totalSales = Number(row.totalSales) || Number(row.invoiceAmount) || 0;
+    const existing = map.get(key);
+    if (!existing) {
       map.set(key, {
         category: formatCategoryLabel(row.category || '—'),
         storeId: row.storeId || '—',
         poNumber: row.poNumber || '—',
-        poSales: Number(row.poSales) || 0,
-        totalSales: Number(row.totalSales) || Number(row.invoiceAmount) || 0,
+        poSales,
+        totalSales,
       });
+      continue;
     }
+    existing.poSales += poSales;
+    existing.totalSales += totalSales;
   }
   return Array.from(map.values()).sort((a, b) => a.poNumber.localeCompare(b.poNumber));
 };
@@ -36,14 +44,14 @@ const buildSkuList = (rows) => {
         sku,
         retailer: row.retailer || '—',
         skuQty: Number(row.skuQty) || 0,
-        invoiceQty: Number(row.invoiceQty) || 0,
+        invoiceQty: effectiveInvoiceQty(row),
         poSales: Number(row.poSales) || 0,
         totalSales: Number(row.totalSales) || Number(row.invoiceAmount) || 0,
       });
       continue;
     }
     existing.skuQty += Number(row.skuQty) || 0;
-    existing.invoiceQty += Number(row.invoiceQty) || 0;
+    existing.invoiceQty += effectiveInvoiceQty(row);
     existing.poSales += Number(row.poSales) || 0;
     existing.totalSales += Number(row.totalSales) || Number(row.invoiceAmount) || 0;
   }

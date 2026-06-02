@@ -1,10 +1,15 @@
 const { recordsFromBuffer } = require('./spreadsheet-parse.utils');
-const { rowFromRecord, enrichRow, hasMinimumData } = require('./sps-columns');
+const {
+  rowFromRecord,
+  enrichRow,
+  isImportablePoSkuRow,
+  isBlankSpreadsheetRecord,
+} = require('./sps-columns');
 
-const MAX_IMPORT_ROWS = Number(process.env.MAX_UPLOAD_ROWS) || 50_000;
+const MAX_IMPORT_ROWS = Number(process.env.MAX_UPLOAD_ROWS) || 150_000;
 
 exports.parseUploadBuffer = (buffer, originalName = '', storeId = 'sps') => {
-  const records = recordsFromBuffer(buffer, originalName);
+  const { records, sheetName, sheetCount } = recordsFromBuffer(buffer, originalName);
 
   if (records.length > MAX_IMPORT_ROWS) {
     const err = new Error(`File has ${records.length} rows. Maximum allowed is ${MAX_IMPORT_ROWS}.`);
@@ -12,18 +17,44 @@ exports.parseUploadBuffer = (buffer, originalName = '', storeId = 'sps') => {
     throw err;
   }
 
-  const docs = [];
   const skipped = [];
+  const skippedBlank = [];
+  const skippedIncomplete = [];
+  const dedupeMap = new Map();
 
   records.forEach((record, index) => {
-    const parsed = rowFromRecord(record);
-    const doc = enrichRow(parsed, storeId);
-    if (!hasMinimumData(doc)) {
-      skipped.push(index + 2);
+    const excelRow = index + 2;
+
+    if (isBlankSpreadsheetRecord(record)) {
+      skippedBlank.push(excelRow);
       return;
     }
-    docs.push(doc);
+
+    const parsed = rowFromRecord(record);
+    const doc = enrichRow(parsed, storeId);
+
+    if (!isImportablePoSkuRow(doc)) {
+      skippedIncomplete.push(excelRow);
+      return;
+    }
+
+    const key = `${doc.storeId || ''}|${doc.poNumber || ''}|${doc.sku || ''}`;
+    dedupeMap.set(key, doc);
   });
 
-  return { docs, skipped, totalRead: records.length };
+  const docs = Array.from(dedupeMap.values());
+  const parsedRowCount = records.length - skippedBlank.length;
+  const duplicateRowsMerged = parsedRowCount - skippedIncomplete.length - docs.length;
+
+  return {
+    docs,
+    skipped: skippedIncomplete,
+    skippedBlank: skippedBlank.length,
+    skippedIncomplete: skippedIncomplete.length,
+    totalRead: records.length,
+    parsedRowCount,
+    sheetName,
+    sheetCount,
+    duplicateRowsMerged,
+  };
 };

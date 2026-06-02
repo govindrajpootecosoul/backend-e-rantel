@@ -2,7 +2,7 @@ const { rowFromRecord, hasMinimumData } = require('./kehe-columns');
 const { recordsFromBuffer } = require('./spreadsheet-parse.utils');
 
 exports.parseUploadBuffer = (buffer, originalName = '') => {
-  const records = recordsFromBuffer(buffer, originalName);
+  const { records } = recordsFromBuffer(buffer, originalName);
 
   const docs = [];
   const skipped = [];
@@ -20,7 +20,7 @@ exports.parseUploadBuffer = (buffer, originalName = '') => {
 };
 
 exports.parseGenericUploadBuffer = (buffer, originalName = '') => {
-  const records = recordsFromBuffer(buffer, originalName);
+  const { records } = recordsFromBuffer(buffer, originalName);
 
   const docs = records
     .map((record) => rowFromRecord(record))

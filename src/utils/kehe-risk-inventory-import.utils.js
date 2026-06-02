@@ -2,7 +2,7 @@ const { rowFromRecord, hasMinimumData } = require('./kehe-risk-inventory-columns
 const { recordsFromBuffer } = require('./spreadsheet-parse.utils');
 
 exports.parseRiskInventoryUploadBuffer = (buffer, originalName = '') => {
-  const records = recordsFromBuffer(buffer, originalName);
+  const { records } = recordsFromBuffer(buffer, originalName);
 
   const docs = [];
   const skipped = [];

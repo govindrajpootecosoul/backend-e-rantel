@@ -8,7 +8,9 @@ const {
   buildFilterOptionsFromGroup,
 } = require('../utils/sps.utils');
 const { buildDetailLists } = require('../utils/kpi-detail-lists');
+const { sumNumeric } = require('../utils/sum-numeric.utils');
 const { formatCategoryLabel } = require('../utils/category.utils');
+const executiveService = require('../services/executive.service');
 const { parseUploadBuffer } = require('../utils/sps-import.utils');
 const { releaseUploadFile } = require('../utils/upload.utils');
 
@@ -80,7 +82,7 @@ exports.getSummary = async (req, res) => {
 
     const filteredPipeline = buildBasePipeline(storeId, filters, 'po');
 
-    const [poCountResult, dedupedMetrics, dedupedRows] = await Promise.all([
+    const [poCountResult, allRowMetrics, allListRows] = await Promise.all([
       PurchaseOrder.aggregate([
         ...filteredPipeline,
         {
@@ -92,54 +94,40 @@ exports.getSummary = async (req, res) => {
       ]),
       PurchaseOrder.aggregate([
         ...filteredPipeline,
-        { $sort: { updatedAt: -1, _id: -1 } },
-        {
-          $group: {
-            _id: { storeId: '$storeId', poNumber: '$poNumber', sku: '$sku' },
-            skuQty: { $first: '$skuQty' },
-            poSales: { $first: '$poSales' },
-            invoiceQty: { $first: '$invoiceQty' },
-            totalSales: { $first: '$totalSales' },
-            qtyDiff: { $first: '$qtyDiff' },
-            amtDiff: { $first: '$amtDiff' },
-          },
-        },
         {
           $group: {
             _id: null,
-            skuPoQty: { $sum: { $ifNull: ['$skuQty', 0] } },
-            poAmount: { $sum: { $ifNull: ['$poSales', 0] } },
-            diffQty: { $sum: { $ifNull: ['$qtyDiff', 0] } },
-            skuInvoiceQty: { $sum: { $ifNull: ['$invoiceQty', 0] } },
-            invoiceAmount: { $sum: { $ifNull: ['$totalSales', 0] } },
-            diffAmount: { $sum: { $ifNull: ['$amtDiff', 0] } },
+            lineRowCount: { $sum: 1 },
+            skuPoQty: sumNumeric('$skuQty'),
+            poAmount: sumNumeric('$poSales'),
+            skuInvoiceQty: sumNumeric('$invoiceQty'),
+            invoiceAmount: sumNumeric('$totalSales'),
           },
         },
       ]),
       PurchaseOrder.aggregate([
         ...filteredPipeline,
-        { $sort: { updatedAt: -1, _id: -1 } },
         {
-          $group: {
-            _id: { storeId: '$storeId', poNumber: '$poNumber', sku: '$sku' },
-            storeId: { $first: '$storeId' },
-            poNumber: { $first: '$poNumber' },
-            sku: { $first: '$sku' },
-            retailer: { $first: '$retailer' },
-            distributor: { $first: '$distributor' },
-            location: { $first: '$location' },
-            skuQty: { $first: '$skuQty' },
-            invoiceQty: { $first: '$invoiceQty' },
-            poSales: { $first: '$poSales' },
-            totalSales: { $first: '$totalSales' },
-            invoiceAmount: { $first: '$invoiceAmount' },
+          $project: {
+            storeId: 1,
+            poNumber: 1,
+            sku: 1,
+            retailer: 1,
+            distributor: 1,
+            location: 1,
+            skuQty: 1,
+            invoiceQty: 1,
+            qtyDiff: 1,
+            poSales: 1,
+            totalSales: 1,
+            invoiceAmount: 1,
           },
         },
       ]),
     ]);
 
     const categoryLabel = formatCategoryLabel(storeId);
-    const listRows = dedupedRows.map((row) => ({
+    const listRows = allListRows.map((row) => ({
       category: categoryLabel,
       storeId: row.storeId,
       poNumber: row.poNumber,
@@ -149,15 +137,30 @@ exports.getSummary = async (req, res) => {
       location: row.location,
       skuQty: row.skuQty,
       invoiceQty: row.invoiceQty,
+      qtyDiff: row.qtyDiff,
       poSales: row.poSales,
       totalSales: row.totalSales,
       invoiceAmount: row.invoiceAmount,
     }));
 
+    const metrics = allRowMetrics[0] || {};
+    const skuPoQty = metrics.skuPoQty ?? 0;
+    const skuInvoiceQty = metrics.skuInvoiceQty ?? 0;
+    const poAmount = metrics.poAmount ?? 0;
+    const invoiceAmount = metrics.invoiceAmount ?? 0;
+
+    const lineRowCount = metrics.lineRowCount ?? 0;
+
     const summary = {
       ...emptySummary(),
       totalPoCount: poCountResult[0]?.totalPoCount ?? 0,
-      ...(dedupedMetrics[0] || {}),
+      lineRowCount,
+      skuPoQty,
+      poAmount,
+      skuInvoiceQty,
+      invoiceAmount,
+      diffQty: skuPoQty - skuInvoiceQty,
+      diffAmount: poAmount - invoiceAmount,
     };
 
     return res.json({
@@ -323,11 +326,17 @@ exports.uploadOrders = async (req, res) => {
     const mode = req.query.mode === 'replace' ? 'replace' : 'append';
     const PurchaseOrder = getPurchaseOrderModel(storeId);
 
-    const { docs, skipped, totalRead } = parseUploadBuffer(
-      req.file.buffer,
-      req.file.originalname,
-      storeId
-    );
+    const {
+      docs,
+      skipped,
+      totalRead,
+      parsedRowCount,
+      sheetName,
+      sheetCount,
+      duplicateRowsMerged,
+      skippedBlank,
+      skippedIncomplete,
+    } = parseUploadBuffer(req.file.buffer, req.file.originalname, storeId);
     releaseUploadFile(req);
 
     if (!docs.length) {
@@ -349,17 +358,26 @@ exports.uploadOrders = async (req, res) => {
     }
 
     const inserted = await PurchaseOrder.insertMany(payload, { ordered: false });
+    const dbRowCount = await PurchaseOrder.countDocuments({});
+    executiveService.invalidateCaches();
     const label = formatCategoryLabel(storeId);
 
     return res.json({
       success: true,
-      message: `Imported ${inserted.length} ${label} rows (${mode})`,
+      message: `Imported ${inserted.length} of ${totalRead} file rows (${mode})`,
       data: {
         storeId,
         mode,
         imported: inserted.length,
         skipped: skipped.length,
+        skippedBlank,
+        skippedIncomplete,
         totalRead,
+        parsedRowCount,
+        dbRowCount,
+        sheetName,
+        sheetCount,
+        duplicateRowsMerged,
         importBatchId: batchId,
       },
     });

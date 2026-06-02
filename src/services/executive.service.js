@@ -3,6 +3,8 @@ const { formatCategoryLabel, categoryKeysMatch } = require('../utils/category.ut
 const executiveCache = require('./executiveCache');
 const { matchesDateFilter, resolvePoMonthKey } = require('../utils/dateFilters');
 const { buildDetailLists } = require('../utils/kpi-detail-lists');
+const { sumField } = require('../utils/sum-numeric.utils');
+const { sumInvoiceQty } = require('../utils/effective-qty.utils');
 
 const EXECUTIVE_COLLECTIONS = ['purchase_orders_sps', 'purchase_orders_waitrose'];
 
@@ -107,9 +109,6 @@ const uniquePoCount = (rows) => {
   }
   return set.size;
 };
-
-const sumField = (rows, field) =>
-  rows.reduce((acc, row) => acc + (Number(row[field]) || 0), 0);
 
 const getRowDate = (row, dateField) => {
   if (dateField === 'poDate') {
@@ -321,21 +320,22 @@ const loadFilteredRows = async (rawFilters = {}, { forceRefresh = false } = {}) 
 
 const buildOverview = (rows) => {
   const deduped = dedupeRows(rows);
-  const skuPoQty = sumField(deduped, 'skuQty');
-  const skuInvoiceQty = sumField(deduped, 'invoiceQty');
-  const poAmount = sumField(deduped, 'poSales');
-  const invoiceAmount = sumField(deduped, 'totalSales') || sumField(deduped, 'invoiceAmount');
+  // KPI sums use every filtered row; only unique PO count dedupes PO identity.
+  const skuPoQty = sumField(rows, 'skuQty');
+  const skuInvoiceQty = sumInvoiceQty(rows);
+  const poAmount = sumField(rows, 'poSales');
+  const invoiceAmount = sumField(rows, 'totalSales') || sumField(rows, 'invoiceAmount');
 
   return {
     rowCount: rows.length,
     dedupedCount: deduped.length,
     summary: {
-      uniqueDistributors: uniqueCount(deduped, 'distributor'),
-      uniqueRetailers: uniqueCount(deduped, 'retailer'),
-      uniqueLocations: uniqueCount(deduped, 'location'),
+      uniqueDistributors: uniqueCount(rows, 'distributor'),
+      uniqueRetailers: uniqueCount(rows, 'retailer'),
+      uniqueLocations: uniqueCount(rows, 'location'),
     },
     kpiCards: {
-      totalPoCount: uniquePoCount(deduped),
+      totalPoCount: uniquePoCount(rows),
       skuPoQty,
       poAmount,
       diffQty: skuPoQty - skuInvoiceQty,
@@ -343,7 +343,7 @@ const buildOverview = (rows) => {
       invoiceAmount,
       diffAmount: poAmount - invoiceAmount,
     },
-    lists: buildDetailLists(deduped),
+    lists: buildDetailLists(rows),
   };
 };
 

@@ -29,18 +29,29 @@ const parseDelimitedText = (text) => {
 const sheetToRecords = (buffer) => {
   const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
+  if (!sheetName) return { records: [], sheetName: null, sheetCount: 0 };
 
-  return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+  const records = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
     defval: '',
-    raw: false,
+    raw: true,
+    blankrows: false,
   });
+
+  return {
+    records,
+    sheetName,
+    sheetCount: workbook.SheetNames.length,
+  };
 };
 
 /** Parse upload buffer to row records. File bytes are not stored — caller should discard buffer after use. */
 const recordsFromBuffer = (buffer, originalName = '') => {
   if (isTextUpload(originalName)) {
-    return parseDelimitedText(buffer.toString('utf8'));
+    return {
+      records: parseDelimitedText(buffer.toString('utf8')),
+      sheetName: null,
+      sheetCount: 1,
+    };
   }
   return sheetToRecords(buffer);
 };
