@@ -3,6 +3,7 @@ const { formatCategoryLabel, categoryKeysMatch } = require('../utils/category.ut
 const executiveCache = require('./executiveCache');
 const { matchesDateFilter, resolvePoMonthKey } = require('../utils/dateFilters');
 const { buildDetailLists } = require('../utils/kpi-detail-lists');
+const { buildDbFieldMatch, normalizePoRow } = require('../utils/po-row-normalize.utils');
 const { sumField } = require('../utils/sum-numeric.utils');
 const { sumInvoiceQty } = require('../utils/effective-qty.utils');
 
@@ -28,10 +29,12 @@ const FILTER_FIELDS = [
   'delayDays',
 ];
 
-const PROJECTION =
-  'storeId poNumber sku poSales poDate totalSales invoiceQty skuQty poAmount invoiceAmount poStatus poDeliveryStatus distributor retailer location status warehouse delayDays updatedAt commonInvoiceDate commonPoDate yearMonthPo';
-
 const CHART_PERIODS = ['daily', 'monthly', 'yearly'];
+
+const STORE_ID_BY_COLLECTION = {
+  purchase_orders_sps: 'sps',
+  purchase_orders_waitrose: 'waitrose',
+};
 const FILTERED_ROWS_TTL_MS = 60 * 1000;
 
 const filteredRowsCache = new Map();
@@ -44,21 +47,25 @@ const tagRowsWithCategory = (rows, collection) =>
   }));
 
 const buildMatch = (filters = {}) => {
-  const match = {};
+  const conditions = [];
+
   for (const field of FILTER_FIELDS) {
-    if (field === 'yearMonthPo' || field === 'category') continue;
+    if (field === 'yearMonthPo' || field === 'category' || field === 'storeId') continue;
     const value = filters[field];
     if (value === undefined || value === null || value === '' || value === 'All') {
       continue;
     }
     if (field === 'delayDays') {
       const num = Number(value);
-      if (!Number.isNaN(num)) match.delayDays = num;
+      if (!Number.isNaN(num)) conditions.push(buildDbFieldMatch('delayDays', num));
       continue;
     }
-    match[field] = value;
+    conditions.push(buildDbFieldMatch(field, value));
   }
-  return match;
+
+  if (conditions.length === 0) return {};
+  if (conditions.length === 1) return conditions[0];
+  return { $and: conditions };
 };
 
 const filterCacheKey = (filters = {}) => JSON.stringify(filters);
@@ -72,6 +79,13 @@ const applyCategoryFilter = (rows, filters = {}) => {
   const want = normalizeCategoryFilter(filters.category);
   if (!want) return rows;
   return rows.filter((row) => categoryKeysMatch(row.category || '', want));
+};
+
+const applyStoreIdFilter = (rows, filters = {}) => {
+  const want = filters.storeId;
+  if (!want || want === 'All') return rows;
+  const normalized = String(want).toLowerCase();
+  return rows.filter((row) => String(row.storeId || '').toLowerCase() === normalized);
 };
 
 const dedupeRows = (rows) => {
@@ -220,7 +234,9 @@ const fetchRowsFromSource = async (collection, filters = {}) => {
   const yearMonthFilter = filters.yearMonthPo;
   const match = buildMatch(filters);
 
-  let rows = await Model.find(match).select(PROJECTION).lean();
+  let rows = await Model.find(match).lean();
+  const defaultStoreId = STORE_ID_BY_COLLECTION[collection];
+  rows = rows.map((row) => normalizePoRow(row, defaultStoreId));
 
   if (yearMonthFilter && yearMonthFilter !== 'All') {
     rows = rows.filter((row) =>
@@ -245,7 +261,7 @@ const fetchRowsFromDb = async (filters = {}) => {
     console.log('[executive] sources=', counts, 'total=', merged.length);
   }
 
-  return applyCategoryFilter(merged, filters);
+  return applyStoreIdFilter(applyCategoryFilter(merged, filters), filters);
 };
 
 const fetchAllRowsFromDb = async () => {
@@ -284,10 +300,7 @@ const loadFilteredRows = async (rawFilters = {}, { forceRefresh = false } = {}) 
       // from both collections to avoid any stale single-source cache.
       if (filters.category === 'All') {
         rows = await fetchAllRowsFromDb();
-        return rows;
-      }
-
-      if (!forceRefresh) {
+      } else if (!forceRefresh) {
         const datasetCache = executiveCache.get();
         if (datasetCache?.data?.rows) {
           rows = datasetCache.data.rows;
@@ -299,10 +312,15 @@ const loadFilteredRows = async (rawFilters = {}, { forceRefresh = false } = {}) 
         executiveCache.invalidate();
         rows = await fetchAllRowsFromDb();
       }
-      rows = applyCategoryFilter(rows, filters);
+      if (filters.category !== 'All') {
+        rows = applyCategoryFilter(rows, filters);
+      }
+      rows = applyStoreIdFilter(rows, filters);
     } else {
       rows = await fetchRowsFromDb(filters);
     }
+
+    rows = applyStoreIdFilter(rows, filters);
 
     filteredRowsCache.set(key, {
       rows,

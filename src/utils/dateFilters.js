@@ -25,25 +25,29 @@ const matchesDateFilter = (value, filter) => {
   return true;
 };
 
-const resolvePoMonthKey = (row) => {
-  const d = row.commonPoDate || row.poDate;
-  if (d) {
-    const date = new Date(d);
-    if (!Number.isNaN(date.getTime())) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      return `${y}-${m}`;
-    }
-  }
-  if (row.yearMonthPo) {
-    const parsed = new Date(row.yearMonthPo);
-    if (!Number.isNaN(parsed.getTime())) {
-      const y = parsed.getFullYear();
-      const m = String(parsed.getMonth() + 1).padStart(2, '0');
-      return `${y}-${m}`;
-    }
+const { parsePeriodLabel } = require('./po-row-normalize.utils');
+
+const resolveYearMonthFromValue = (value) => {
+  if (!value) return '';
+  const raw = String(value).trim();
+  const isoMonth = raw.match(/^(\d{4})-(\d{2})$/);
+  if (isoMonth) return `${isoMonth[1]}-${isoMonth[2]}`;
+
+  const parsed = parsePeriodLabel(value) || new Date(value);
+  if (parsed && !Number.isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
   }
   return '';
+};
+
+const resolvePoMonthKey = (row) => {
+  const fromYearMonth = resolveYearMonthFromValue(row.yearMonthPo);
+  if (fromYearMonth) return fromYearMonth;
+
+  const d = row.commonPoDate || row.poDate;
+  return resolveYearMonthFromValue(d);
 };
 
 module.exports = {

@@ -6,7 +6,11 @@ const {
   parseFiltersFromQuery,
   buildBasePipeline,
   buildFilterOptionsFromGroup,
+  normalizeFieldsStage,
+  dateResolveStage,
+  computedFieldsStage,
 } = require('../utils/sps.utils');
+const { normalizePoRow } = require('../utils/po-row-normalize.utils');
 const { buildDetailLists } = require('../utils/kpi-detail-lists');
 const { sumNumeric } = require('../utils/sum-numeric.utils');
 const { formatCategoryLabel } = require('../utils/category.utils');
@@ -53,7 +57,7 @@ exports.getOrders = async (req, res) => {
 
     const [result] = await PurchaseOrder.aggregate(pipeline);
     const total = result?.metadata?.[0]?.total ?? 0;
-    const rows = result?.rows ?? [];
+    const rows = (result?.rows ?? []).map((row) => normalizePoRow(row, storeId));
 
     return res.json({
       success: true,
@@ -185,105 +189,15 @@ exports.getFilters = async (req, res) => {
 
     const [groupResult] = await PurchaseOrder.aggregate([
       { $match: {} },
-      {
-        $addFields: {
-          _resolvedPoStatus: { $ifNull: ['$poStatus', { $ifNull: ['$newStatus', '$status'] }] },
-          _resolvedStatus: { $ifNull: ['$newStatus', { $ifNull: ['$status', '$poStatus'] }] },
-          _resolvedPoYearMonth: {
-            $cond: {
-              if: {
-                $and: [{ $ne: ['$yearMonthPo', null] }, { $ne: ['$yearMonthPo', ''] }],
-              },
-              then: { $toString: '$yearMonthPo' },
-              else: {
-                $let: {
-                  vars: { d: { $ifNull: ['$commonPoDate', '$poDate'] } },
-                  in: {
-                    $cond: {
-                      if: { $ne: ['$$d', null] },
-                      then: {
-                        $concat: [
-                          { $toString: { $month: '$$d' } },
-                          '/1/',
-                          {
-                            $substrCP: [
-                              { $toString: { $year: '$$d' } },
-                              {
-                                $max: [
-                                  {
-                                    $subtract: [
-                                      { $strLenCP: { $toString: { $year: '$$d' } } },
-                                      2,
-                                    ],
-                                  },
-                                  0,
-                                ],
-                              },
-                              2,
-                            ],
-                          },
-                        ],
-                      },
-                      else: '',
-                    },
-                  },
-                },
-              },
-            },
-          },
-          _resolvedInvoiceYearMonth: {
-            $let: {
-              vars: { d: { $ifNull: ['$commonInvoiceDate', '$invoiceDate'] } },
-              in: {
-                $cond: {
-                  if: { $ne: ['$$d', null] },
-                  then: {
-                    $concat: [
-                      { $toString: { $month: '$$d' } },
-                      '/1/',
-                      {
-                        $substrCP: [
-                          { $toString: { $year: '$$d' } },
-                          {
-                            $max: [
-                              {
-                                $subtract: [{ $strLenCP: { $toString: { $year: '$$d' } } }, 2],
-                              },
-                              0,
-                            ],
-                          },
-                          2,
-                        ],
-                      },
-                    ],
-                  },
-                  else: '',
-                },
-              },
-            },
-          },
-          _poDateKey: {
-            $cond: {
-              if: { $ne: ['$poDate', null] },
-              then: { $dateToString: { format: '%Y-%m-%d', date: '$poDate' } },
-              else: '',
-            },
-          },
-          _invoiceDateKey: {
-            $cond: {
-              if: { $ne: ['$invoiceDate', null] },
-              then: { $dateToString: { format: '%Y-%m-%d', date: '$invoiceDate' } },
-              else: '',
-            },
-          },
-        },
-      },
+      normalizeFieldsStage,
+      dateResolveStage,
+      computedFieldsStage,
       {
         $group: {
           _id: null,
           channel: { $addToSet: '$channel' },
-          _resolvedPoYearMonth: { $addToSet: '$_resolvedPoYearMonth' },
-          _resolvedInvoiceYearMonth: { $addToSet: '$_resolvedInvoiceYearMonth' },
+          _poMonthKey: { $addToSet: '$_poMonthKey' },
+          _invoiceMonthKey: { $addToSet: '$_invoiceMonthKey' },
           distributor: { $addToSet: '$distributor' },
           retailer: { $addToSet: '$retailer' },
           poNumber: { $addToSet: '$poNumber' },

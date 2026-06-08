@@ -61,6 +61,7 @@ const inventorySchema = new mongoose.Schema(
     collection: 'sprouts_inventory',
     timestamps: true,
     autoIndex: false,
+    strict: false,
   }
 );
 

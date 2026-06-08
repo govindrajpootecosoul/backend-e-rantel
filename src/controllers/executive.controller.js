@@ -1,6 +1,7 @@
 const { getPurchaseOrderModelByCollection } = require('../models/PurchaseOrder');
 const executiveCache = require('../services/executiveCache');
 const executiveService = require('../services/executive.service');
+const { mergeDistinctAliases } = require('../utils/po-row-normalize.utils');
 
 const FILTER_FIELDS = executiveService.FILTER_FIELDS;
 const EXECUTIVE_MODELS = [
@@ -13,7 +14,7 @@ const lastUpdated = () => new Date().toISOString();
 
 const mergeDistinct = async (field) => {
   const lists = await Promise.all(
-    EXECUTIVE_MODELS.map((Model) => Model.distinct(field).lean())
+    EXECUTIVE_MODELS.map((Model) => mergeDistinctAliases(Model, field))
   );
   return [...new Set(lists.flat())];
 };
@@ -24,6 +25,10 @@ exports.getFilters = async (req, res) => {
 
     for (const field of FILTER_FIELDS) {
       if (field === 'category') continue;
+      if (field === 'storeId') {
+        filters[field] = ['All', 'sps', 'waitrose'];
+        continue;
+      }
       if (field === 'yearMonthPo') {
         filters[field] = ['All'];
         continue;

@@ -386,21 +386,12 @@ exports.getInventoryRows = async (req, res) => {
   try {
     const page = parsePage(req.query.page, 1);
     const limit = parseLimit(req.query.limit, 25);
-    const skip = (page - 1) * limit;
-    const reportMonth = req.query.reportMonth;
-    const query =
-      reportMonth && reportMonth !== 'All' ? { reportMonth } : {};
-    const total = await SproutsInventory.countDocuments(query);
-    const rows = await SproutsInventory.find(query)
-      .select('-__v')
-      .sort({ updatedAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const reportMonth = req.query.reportMonth || 'All';
+    const result = await inventoryService.getRows(reportMonth, page, limit);
 
     return res.json({
       success: true,
-      data: { page, limit, total, totalPages: total ? Math.ceil(total / limit) : 0, rows },
+      data: { ...result, lastUpdated: new Date().toISOString() },
     });
   } catch (err) {
     console.error('getInventoryRows error:', err.message);

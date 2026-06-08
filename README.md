@@ -25,7 +25,8 @@ API runs on `http://localhost:5010`
 
 | Variable | Description |
 |----------|-------------|
-| `MONGODB_URI` | MongoDB Atlas connection string |
+| `MONGODB_URI` | MongoDB Atlas connection string (cluster only, no database path) |
+| `MONGODB_DB_NAME` | Database name used for all connections (default `ecosoulpo`) |
 | `JWT_SECRET` | Token signing secret |
 | `PORT` | Server port (default 5010) |
 | `CORS_ORIGIN` | Frontend origin |

@@ -1,16 +1,12 @@
 const SproutsChainStore = require('../models/SproutsChainStore');
-const { buildMatchStage } = require('../utils/kehe-filters.utils');
-
-const basePipeline = (filters) => {
-  const stages = [];
-  const match = buildMatchStage(filters);
-  if (match) stages.push(match);
-  return stages;
-};
+const {
+  chainStorePipelinePrefix,
+  normalizeChainStoreRows,
+} = require('../utils/chain-store-normalize.utils');
 
 exports.getFilterOptions = async (filters = {}) => {
   const pipeline = [
-    ...basePipeline(filters),
+    ...chainStorePipelinePrefix(filters),
     {
       $group: {
         _id: null,
@@ -42,7 +38,7 @@ exports.getFilterOptions = async (filters = {}) => {
 
 exports.getSummary = async (filters = {}) => {
   const pipeline = [
-    ...basePipeline(filters),
+    ...chainStorePipelinePrefix(filters),
     {
       $group: {
         _id: null,
@@ -51,7 +47,7 @@ exports.getSummary = async (filters = {}) => {
         orderedQuantity: { $sum: { $ifNull: ['$orderedQuantity', 0] } },
         shippedQuantity: { $sum: { $ifNull: ['$shippedQuantity', 0] } },
         markupSum: { $sum: { $ifNull: ['$markup', 0] } },
-        markupCount: { $sum: { $cond: [{ $ne: ['$markup', null] }, 1, 0] } },
+        markupCount: { $sum: { $cond: [{ $gt: ['$markup', 0] }, 1, 0] } },
         retailers: { $addToSet: '$retailer' },
         skus: { $addToSet: '$sku' },
         upcs: { $addToSet: '$upc' },
@@ -89,7 +85,7 @@ exports.getSummary = async (filters = {}) => {
 
 exports.getRetailerVendorSummary = async (filters = {}, limit = 50) => {
   const pipeline = [
-    ...basePipeline(filters),
+    ...chainStorePipelinePrefix(filters),
     {
       $group: {
         _id: { retailer: '$retailer', retailerArea: '$retailerArea' },
@@ -120,7 +116,7 @@ exports.getRetailerVendorSummary = async (filters = {}, limit = 50) => {
 
 exports.getQuantitySummary = async (filters = {}, limit = 50) => {
   const pipeline = [
-    ...basePipeline(filters),
+    ...chainStorePipelinePrefix(filters),
     {
       $group: {
         _id: { sku: '$sku', retailer: '$retailer', retailerArea: '$retailerArea' },
@@ -149,6 +145,7 @@ exports.getQuantitySummary = async (filters = {}, limit = 50) => {
 };
 
 exports.getRows = async (filters = {}, page = 1, limit = 25) => {
+  const { buildMatchStage } = require('../utils/kehe-filters.utils');
   const match = buildMatchStage(filters);
   const query = match ? match.$match : {};
   const skip = (page - 1) * limit;
@@ -168,7 +165,7 @@ exports.getRows = async (filters = {}, page = 1, limit = 25) => {
     limit,
     total,
     totalPages: total > 0 ? Math.ceil(total / limit) : 0,
-    rows,
+    rows: normalizeChainStoreRows(rows),
   };
 };
 

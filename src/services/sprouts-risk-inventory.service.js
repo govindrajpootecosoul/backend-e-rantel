@@ -1,6 +1,7 @@
 const SproutsRiskInventory = require('../models/SproutsRiskInventory');
 const SproutsInventory = require('../models/SproutsInventory');
 const { buildRiskMatch } = require('../utils/kehe-risk-filters.utils');
+const { normalizeInventoryRows } = require('../utils/inventory-normalize.utils');
 
 const sortValues = (arr = []) =>
   [...new Set(arr.filter((v) => v && String(v).trim()))].sort((a, b) =>
@@ -131,11 +132,7 @@ exports.getDashboard = async (filters = {}) => {
   const skuDcOr = buildInventoryOrFromRiskRows(riskRows);
   const invBaseQuery = applyNonMonthFilters({ $or: skuDcOr }, filters);
 
-  const inventoryRows = await SproutsInventory.find(invBaseQuery)
-    .select(
-      'sku dc material quantityOnHand quantityOnPurchaseOrder quantityOnSalesOrder downloadedOn vendorCasePack boxPerCase weeksOnHand weeksOnPO'
-    )
-    .lean();
+  const inventoryRows = normalizeInventoryRows(await SproutsInventory.find(invBaseQuery).lean());
 
   const materialPoMap = new Map();
   const materialSoMap = new Map();

@@ -180,4 +180,8 @@ module.exports = {
   AGING_BUCKET_IDS,
   bucketIdForAgeDays,
   parseReportMonth,
+  computeInventoryAgeDays,
+  HEADER_ALIASES,
+  NUMERIC_FIELDS,
+  mapHeaderToField,
 };

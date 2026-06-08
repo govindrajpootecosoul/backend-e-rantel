@@ -1,3 +1,5 @@
+const { buildDbFieldMatch } = require('./chain-store-normalize.utils');
+
 const FILTER_KEYS = ['fileMonth', 'retailer', 'retailerArea', 'sku', 'upc', 'material'];
 
 const parseFiltersFromQuery = (query) => {
@@ -10,14 +12,16 @@ const parseFiltersFromQuery = (query) => {
 };
 
 const buildMatchStage = (filters = {}) => {
-  const match = {};
+  const conditions = [];
   for (const key of FILTER_KEYS) {
     const value = filters[key];
     if (value && value !== 'All') {
-      match[key] = value;
+      conditions.push(buildDbFieldMatch(key, value));
     }
   }
-  return Object.keys(match).length ? { $match: match } : null;
+  if (conditions.length === 0) return null;
+  if (conditions.length === 1) return { $match: conditions[0] };
+  return { $match: { $and: conditions } };
 };
 
 const parsePage = (value, fallback = 1) => {

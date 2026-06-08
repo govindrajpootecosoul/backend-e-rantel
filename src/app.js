@@ -11,6 +11,7 @@ const usersRoutes = require('./routes/users.routes');
 const storesKeheRoutes = require('./routes/stores-kehe.routes');
 const storesSproutsRoutes = require('./routes/stores-sprouts.routes');
 const { apiLimiter } = require('./middleware/security.middleware');
+const requestLogMiddleware = require('./middleware/requestLog.middleware');
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use(
   })
 );
 app.use(express.json({ limit: '2mb' }));
+app.use(requestLogMiddleware);
 app.use('/api', apiLimiter);
 
 app.get('/api/health', (req, res) => {

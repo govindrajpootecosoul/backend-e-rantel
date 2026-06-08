@@ -32,6 +32,7 @@ const chainStoreSchema = new mongoose.Schema(
     collection: 'sprouts_chain_store',
     timestamps: true,
     autoIndex: false,
+    strict: false,
   }
 );
 

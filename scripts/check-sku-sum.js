@@ -1,8 +1,9 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+const { getMongoUri, getMongoConnectOptions } = require('../src/config/mongodb');
 
 (async () => {
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(getMongoUri(), getMongoConnectOptions());
   const col = mongoose.connection.collection('purchase_orders_sps');
   const total = await col.countDocuments({});
   const [agg] = await col

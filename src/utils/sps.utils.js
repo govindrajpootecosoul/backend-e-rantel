@@ -1,3 +1,5 @@
+const { normalizeFieldsStage, mongoToDateExpr } = require('./po-row-normalize.utils');
+
 const SPS_FILTER_KEYS = [
   'channel',
   'poYearMonth',
@@ -44,6 +46,13 @@ const parseFiltersFromQuery = (query = {}) => {
   return filters;
 };
 
+const dateResolveStage = {
+  $addFields: {
+    _resolvedPoDate: mongoToDateExpr({ $ifNull: ['$commonPoDate', '$poDate'] }),
+    _resolvedInvoiceDate: mongoToDateExpr({ $ifNull: ['$commonInvoiceDate', '$invoiceDate'] }),
+  },
+};
+
 const computedFieldsStage = {
   $addFields: {
     _resolvedPoStatus: { $ifNull: ['$poStatus', { $ifNull: ['$newStatus', '$status'] }] },
@@ -55,45 +64,16 @@ const computedFieldsStage = {
         },
         then: { $toString: '$yearMonthPo' },
         else: {
-          $let: {
-            vars: { d: { $ifNull: ['$commonPoDate', '$poDate'] } },
-            in: {
-              $cond: {
-                if: { $ne: ['$$d', null] },
-                then: {
-                  $concat: [
-                    { $toString: { $month: '$$d' } },
-                    '/1/',
-                    {
-                      $substrCP: [
-                        { $toString: { $year: '$$d' } },
-                        { $max: [{ $subtract: [{ $strLenCP: { $toString: { $year: '$$d' } } }, 2] }, 0] },
-                        2,
-                      ],
-                    },
-                  ],
-                },
-                else: '',
-              },
-            },
-          },
-        },
-      },
-    },
-    _resolvedInvoiceYearMonth: {
-      $let: {
-        vars: { d: { $ifNull: ['$commonInvoiceDate', '$invoiceDate'] } },
-        in: {
           $cond: {
-            if: { $ne: ['$$d', null] },
+            if: { $ne: ['$_resolvedPoDate', null] },
             then: {
               $concat: [
-                { $toString: { $month: '$$d' } },
+                { $toString: { $month: '$_resolvedPoDate' } },
                 '/1/',
                 {
                   $substrCP: [
-                    { $toString: { $year: '$$d' } },
-                    { $max: [{ $subtract: [{ $strLenCP: { $toString: { $year: '$$d' } } }, 2] }, 0] },
+                    { $toString: { $year: '$_resolvedPoDate' } },
+                    { $max: [{ $subtract: [{ $strLenCP: { $toString: { $year: '$_resolvedPoDate' } } }, 2] }, 0] },
                     2,
                   ],
                 },
@@ -104,70 +84,94 @@ const computedFieldsStage = {
         },
       },
     },
+    _resolvedInvoiceYearMonth: {
+      $cond: {
+        if: { $ne: ['$_resolvedInvoiceDate', null] },
+        then: {
+          $concat: [
+            { $toString: { $month: '$_resolvedInvoiceDate' } },
+            '/1/',
+            {
+              $substrCP: [
+                { $toString: { $year: '$_resolvedInvoiceDate' } },
+                { $max: [{ $subtract: [{ $strLenCP: { $toString: { $year: '$_resolvedInvoiceDate' } } }, 2] }, 0] },
+                2,
+              ],
+            },
+          ],
+        },
+        else: '',
+      },
+    },
     _poDateKey: {
       $cond: {
         if: { $ne: ['$poDate', null] },
-        then: { $dateToString: { format: '%Y-%m-%d', date: '$poDate' } },
+        then: {
+          $let: {
+            vars: { d: mongoToDateExpr('$poDate') },
+            in: {
+              $cond: {
+                if: { $ne: ['$$d', null] },
+                then: { $dateToString: { format: '%Y-%m-%d', date: '$$d' } },
+                else: '',
+              },
+            },
+          },
+        },
         else: '',
       },
     },
     _invoiceDateKey: {
       $cond: {
         if: { $ne: ['$invoiceDate', null] },
-        then: { $dateToString: { format: '%Y-%m-%d', date: '$invoiceDate' } },
-        else: '',
-      },
-    },
-    _poMonthKey: {
-      $let: {
-        vars: { d: { $ifNull: ['$commonPoDate', '$poDate'] } },
-        in: {
-          $cond: {
-            if: { $ne: ['$$d', null] },
-            then: { $dateToString: { format: '%Y-%m', date: '$$d' } },
-            else: {
+        then: {
+          $let: {
+            vars: { d: mongoToDateExpr('$invoiceDate') },
+            in: {
               $cond: {
-                if: {
-                  $and: [{ $ne: ['$yearMonthPo', null] }, { $ne: ['$yearMonthPo', ''] }],
-                },
-                then: {
-                  $let: {
-                    vars: {
-                      parsed: {
-                        $convert: {
-                          input: '$yearMonthPo',
-                          to: 'date',
-                          onError: null,
-                          onNull: null,
-                        },
-                      },
-                    },
-                    in: {
-                      $cond: {
-                        if: { $ne: ['$$parsed', null] },
-                        then: { $dateToString: { format: '%Y-%m', date: '$$parsed' } },
-                        else: '',
-                      },
-                    },
-                  },
-                },
+                if: { $ne: ['$$d', null] },
+                then: { $dateToString: { format: '%Y-%m-%d', date: '$$d' } },
                 else: '',
               },
             },
           },
         },
+        else: '',
       },
     },
-    _invoiceMonthKey: {
-      $let: {
-        vars: { d: { $ifNull: ['$commonInvoiceDate', '$invoiceDate'] } },
-        in: {
+    _poMonthKey: {
+      $cond: {
+        if: {
+          $and: [{ $ne: ['$yearMonthPo', null] }, { $ne: ['$yearMonthPo', ''] }],
+        },
+        then: {
+          $let: {
+            vars: {
+              parsed: mongoToDateExpr('$yearMonthPo'),
+            },
+            in: {
+              $cond: {
+                if: { $ne: ['$$parsed', null] },
+                then: { $dateToString: { format: '%Y-%m', date: '$$parsed' } },
+                else: { $toString: '$yearMonthPo' },
+              },
+            },
+          },
+        },
+        else: {
           $cond: {
-            if: { $ne: ['$$d', null] },
-            then: { $dateToString: { format: '%Y-%m', date: '$$d' } },
+            if: { $ne: ['$_resolvedPoDate', null] },
+            then: { $dateToString: { format: '%Y-%m', date: '$_resolvedPoDate' } },
             else: '',
           },
         },
+      },
+    },
+    _invoiceMonthKey: {
+      $cond: {
+        if: { $ne: ['$_resolvedInvoiceDate', null] },
+        then: { $dateToString: { format: '%Y-%m', date: '$_resolvedInvoiceDate' } },
+        else: '',
       },
     },
   },
@@ -236,8 +240,24 @@ const buildFilterMatchStage = (filters = {}) => {
   return { $match: { $and: conditions } };
 };
 
-const buildBasePipeline = (_storeId, filters = {}, type = 'po') => {
-  const pipeline = [{ $match: {} }, computedFieldsStage, buildFilterMatchStage(filters)];
+const storeIdResolveStage = (storeId) => ({
+  $addFields: {
+    storeId: {
+      $ifNull: ['$storeId', { $ifNull: ['$store_id', storeId] }],
+    },
+  },
+});
+
+const buildBasePipeline = (storeId, filters = {}, type = 'po') => {
+  const resolvedStoreId = String(storeId || 'sps').toLowerCase();
+  const pipeline = [
+    { $match: {} },
+    normalizeFieldsStage,
+    storeIdResolveStage(resolvedStoreId),
+    dateResolveStage,
+    computedFieldsStage,
+    buildFilterMatchStage(filters),
+  ];
 
   if (type === 'invoice') {
     pipeline.push({
@@ -254,6 +274,8 @@ const buildFilterOptionsFromGroup = (group = {}) => {
   const result = {};
   const fieldMap = {
     channel: 'channel',
+    poYearMonth: '_poMonthKey',
+    invoiceYearMonth: '_invoiceMonthKey',
     distributor: 'distributor',
     retailer: 'retailer',
     poNumber: 'poNumber',
@@ -263,6 +285,8 @@ const buildFilterOptionsFromGroup = (group = {}) => {
     status: '_resolvedStatus',
     location: 'location',
     warehouse: 'warehouse',
+    poDate: '_poDateKey',
+    invoiceDate: '_invoiceDateKey',
   };
 
   for (const [key, sourceField] of Object.entries(fieldMap)) {
@@ -282,4 +306,6 @@ module.exports = {
   buildFilterOptionsFromGroup,
   prependAll,
   computedFieldsStage,
+  normalizeFieldsStage,
+  dateResolveStage,
 };

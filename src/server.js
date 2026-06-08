@@ -32,6 +32,9 @@ const start = async () => {
     await connectDB();
     const server = app.listen(PORT, () => {
       console.log(`Retail Central API running on port ${PORT}`);
+      if (process.env.API_REQUEST_LOG !== 'false') {
+        console.log('[API LOG] Request logging enabled — every /api hit will print here');
+      }
     });
 
     server.on('error', (err) => {
